@@ -1,8 +1,8 @@
 package game.util;
 
-import game.MainLoop;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -29,7 +29,15 @@ public class Util {
             }
             //endregion
         } catch (Exception death) {
-            MainLoop.terminate();
+            throw new RuntimeException("Just kill me");
         }
+    }
+    @NotNull
+    @Contract(pure = true)
+    public static String colorNameFromColor(boolean color){
+        if(color){
+            return "black";
+        }
+        return "white";
     }
 }

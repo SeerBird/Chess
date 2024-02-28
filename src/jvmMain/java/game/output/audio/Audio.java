@@ -27,10 +27,6 @@ public class Audio {
         } catch (LineUnavailableException e) {
             throw new RuntimeException(e);
         }
-        soundStreams.put(death, Resources.goodnight);
-        soundStreams.put(button, Resources.vine);
-        soundStreams.put(webThrow, Resources.pew);
-        soundStreams.put(collision, Resources.pipe);
     }
 
     public static void playSound(Sound sound) {// design some kind of notifiable object to stop the clip

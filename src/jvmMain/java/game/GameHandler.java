@@ -1,84 +1,66 @@
 package game;
 
+import game.model.Board;
 import game.output.GameWindow;
 import game.output.Renderer;
 import game.output.ui.Menu;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
 
 public class GameHandler {
     private final static Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-    //region Jobs
-    private static final HashMap<Job, Runnable> job = new HashMap<>();
-    private static final Player white = new Player("Player 1");
-    private static final Player black = new Player("Player 2");
-
-    private enum Job {
-    }
-
-    private static final ArrayList<Job> toRemove = new ArrayList<>();
-    private static final ArrayList<Job> toAdd = new ArrayList<>();
-
-    private static final ArrayList<Runnable> jobs = new ArrayList<>();
-    //endregion
     static final GameWindow window = new GameWindow();
-    private static GameState state;
-
-    static {
-        state = GameState.main;
-        //region Define job dictionary
-        job.clear();
-        //endregion
-        //region Set starting state
-        //endregion
-    }
+    static final ArrayList<Board> history = new ArrayList<>();
+    static MoveGenerator black;
+    static MoveGenerator white;
 
     public static void out() {
         Renderer.drawImage(window.getCanvas());
         window.showCanvas();
     }
 
-    public static void update() {
-        //region remove and add jobs
-        for (Job added : toAdd) {
-            jobs.add(job.get(added));
+    public static void start() {
+        history.clear();
+        history.add(new Board());
+        history.get(0).reset();
+        black = new Menu();
+        white = new Menu();
+        MoveGenerator player;
+        ArrayList<Board> futures;
+        int choice = -1;
+        for (int i = 0; ; i++) {
+            if (i % 2 == 0) {
+                player = white;
+            } else {
+                player = black;
+            }
+            futures = getBoard().getPossibleMoves(i % 2 == 1);
+            try {
+                choice = player.selectFuture(futures).get();
+            } catch (ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            if (choice == -2) {
+                player.endGame(false);
+                getOpponent(player).endGame(true);
+                break;
+            }
+            history.add(futures.get(choice));
         }
-        toAdd.clear();
-        for (Job removed : toRemove) {
-            jobs.remove(job.get(removed));
+    }
+
+    private static MoveGenerator getOpponent(MoveGenerator player) {
+        if (player == black) {
+            return white;
         }
-        toRemove.clear();
-        //endregion
-        //region get em done
-        for (Runnable job : jobs) {
-            job.run();
-        }
-        //endregion
+        return black;
     }
 
-    private static void addJob(Job job) {
-        toAdd.add(job);
+    public static Board getBoard() {
+        return history.get(history.size() - 1);
     }
-
-    private static void removeJob(Job job) {
-        toRemove.add(job);
-    }
-
-
-    //region State traversal
-    private static void setState(GameState gameState) {
-        state = gameState;
-        Menu.refreshGameState();
-    }
-
-    public static GameState getState() {
-        return state;
-    }
-
-    public static void escape() {
-    }
-    //endregion
 }

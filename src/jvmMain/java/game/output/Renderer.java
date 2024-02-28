@@ -1,6 +1,10 @@
 package game.output;
 
 
+import game.GameHandler;
+import game.Resources;
+import game.model.Board;
+import game.model.Piece;
 import game.output.animations.Animation;
 import game.output.ui.IElement;
 import game.output.ui.Menu;
@@ -13,6 +17,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.ArrayList;
+
+import static game.model.Position.pos;
+import static game.util.DevConfig.tileSize;
 
 public class Renderer {
     static Graphics g;
@@ -28,45 +35,41 @@ public class Renderer {
         }
     }
 
-    public static void drawImage(Graphics g) {
+    public static void drawImage(@NotNull Graphics g) { //I'm just gonna call this whenever something changes. optimize? never.
         Renderer.g = g;
         g.translate(x, y);
-        fill(DevConfig.BACKGROUND);
+        Board board = GameHandler.getBoard();
+        //region board
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                if (i % 2 == 0 ^ j % 2 == 0) {
+                    g.setColor(DevConfig.black);
+                } else {
+                    g.setColor(DevConfig.white);
+                }
+                /*
+                if (board.isAttacked(false, pos(i, j))){
+                    g.setColor(Color.magenta);
+                }
+
+                 */
+                g.fillRect(i * tileSize, j * tileSize, tileSize, tileSize);
+            }
+        }
+        //endregion
         update();
         drawMenu();
+        for (Piece piece : GameHandler.getBoard().getPieces()) {
+            g.drawImage(getImage(piece), piece.pos.x * tileSize, piece.pos.y * tileSize, tileSize, tileSize, null);
+        }
         g.dispose();
     }
 
     //region Menu
     private static void drawMenu() {
-        for (IElement e : Menu.getElements()) {
-            if (e instanceof Button) {
-                drawButton((Button) e);
-            } else if (e instanceof ServerList) {
-                for (Button b : ((ServerList) e).getButtonServers()) {
-                    drawButton(b);
-                }
-                drawLabel(((ServerList) e).title);
-            } else if (e instanceof PlayerList) {
-                for (Label l : ((PlayerList) e).getLabels()) {
-                    drawLabel(l);
-                }
-                drawRect((RectElement) e, DevConfig.turtle);
-            } else if (e instanceof Scoreboard) {
-                if (((Scoreboard) e).visible) {
-                    for (Label p : ((Scoreboard) e).getScores().keySet()) {
-                        drawLabel(p);
-                    }
-                    for (Label p : ((Scoreboard) e).getScores().values()) {
-                        drawLabel(p);
-                    }
-                }
-            } else if (e instanceof Textbox) {
-                drawTextbox((Textbox) e);
-            } else if (e instanceof Toggleable) {
-                drawToggleable((Toggleable) e);
-            } else if (e instanceof Label) {
-                drawLabel((Label) e);
+        if (Menu.getMoves() != null) {
+            for (Button move : Menu.getMoves()) {
+                drawButton(move);
             }
         }
     }
@@ -80,14 +83,11 @@ public class Renderer {
 
     private static void drawButton(@NotNull Button button) {
         if (button.isPressed()) {
-            g.setColor(button.textColor.darker());
+            g.setColor(button.color.darker());
         } else {
-            g.setColor(button.textColor);
+            g.setColor(button.color);
         }
-        g.drawRect(button.x, button.y, button.width, button.height);
-
-        g.drawRect(button.x + 4, button.y + 4, button.width - 8, button.height - 8);
-        drawLabelText(button, button.textColor);
+        g.fillRect(button.x, button.y, button.width, button.height);
     }
 
     private static void drawToggleable(@NotNull Toggleable toggle) {
@@ -127,12 +127,59 @@ public class Renderer {
     public static void removeAnimation(Animation animation) {
         animations.remove(animation);
     }
+
     //endregion
+    private static Image getImage(Piece piece) {
+        if (piece.color) {
+            switch (piece.type) {
+                case pawn -> {
+                    return Resources.bp;
+                }
+                case rook -> {
+                    return Resources.br;
+                }
+                case knight -> {
+                    return Resources.bn;
+                }
+                case bishop -> {
+                    return Resources.bb;
+                }
+                case queen -> {
+                    return Resources.bq;
+                }
+                case king -> {
+                    return Resources.bk;
+                }
+            }
+        } else {
+            switch (piece.type) {
+                case pawn -> {
+                    return Resources.wp;
+                }
+                case rook -> {
+                    return Resources.wr;
+                }
+                case knight -> {
+                    return Resources.wn;
+                }
+                case bishop -> {
+                    return Resources.wb;
+                }
+                case queen -> {
+                    return Resources.wq;
+                }
+                case king -> {
+                    return Resources.wk;
+                }
+            }
+        }
+        return null;
+    }
 
 
     private static void fill(Color c) {
         g.setColor(c);
-        g.fillRect(-200, -200, DevConfig.WIDTH + 400, DevConfig.HEIGHT + 400);
+        g.fillRect(-200, -200, tileSize * 8 + 400, tileSize * 8 + 400);
     }
 
     public static int getStringWidth(String string) {

@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,7 +23,7 @@ public class Board {
     Map<Position, Attack> attacks;
     KingData black;
     KingData white;
-    Move lastMove;
+    public Move lastMove;
     ArrayList<Move> moves;
 
     public Board() {
@@ -46,8 +47,8 @@ public class Board {
         board.put(pos(0, 0), new Piece(true, rook, pos(0, 0)));
         board.put(pos(1, 0), new Piece(true, knight, pos(1, 0)));
         board.put(pos(2, 0), new Piece(true, bishop, pos(2, 0)));
-        board.put(pos(3, 0), new Piece(true, king, pos(3, 0)));
-        board.put(pos(4, 0), new Piece(true, queen, pos(4, 0)));
+        board.put(pos(3, 0), new Piece(true, queen, pos(3, 0)));
+        board.put(pos(4, 0), new Piece(true, king, pos(4, 0)));
         board.put(pos(5, 0), new Piece(true, bishop, pos(5, 0)));
         board.put(pos(6, 0), new Piece(true, knight, pos(6, 0)));
         board.put(pos(7, 0), new Piece(true, rook, pos(7, 0)));
@@ -56,22 +57,24 @@ public class Board {
         board.put(pos(0, 7), new Piece(false, rook, pos(0, 7)));
         board.put(pos(1, 7), new Piece(false, knight, pos(1, 7)));
         board.put(pos(2, 7), new Piece(false, bishop, pos(2, 7)));
-        board.put(pos(3, 7), new Piece(false, king, pos(3, 7)));
-        board.put(pos(4, 7), new Piece(false, queen, pos(4, 7)));
+        board.put(pos(3, 7), new Piece(false, queen, pos(3, 7)));
+        board.put(pos(4, 7), new Piece(false, king, pos(4, 7)));
         board.put(pos(5, 7), new Piece(false, bishop, pos(5, 7)));
         board.put(pos(6, 7), new Piece(false, knight, pos(6, 7)));
         board.put(pos(7, 7), new Piece(false, rook, pos(7, 7)));
         //endregion
-        black = new KingData(board.get(pos(3, 0)));
-        white = new KingData(board.get(pos(3, 7)));
-        generatePossiblyCheckMoves();
+        black = new KingData(board.get(pos(4, 0)));
+        white = new KingData(board.get(pos(4, 7)));
+        generatePossiblyCheckMoves(false);
     }
 
-    public ArrayList<Board> getPossibleMoves() {
+    public ArrayList<Board> getPossibleMoves(boolean color) {
         ArrayList<Board> res = new ArrayList<>();
         //region create and add all the futures that the moves would create
         for (Move move : moves) {
-            res.add(makeMove(move));
+            if (color == move.actor.color) {
+                res.add(makeMove(move));
+            }
         }
         //endregion
         //region retroactively check for check and castling path safety. remove invalid board states accordingly.
@@ -85,11 +88,14 @@ public class Board {
                 for (int x = future.lastMove.actor.pos.x + direction; // original location being under attack would have made this impossible
                      x != future.lastMove.dest.x; // destination was just checked above
                      x += direction) {
-                    if (future.isAttacked(future.lastMove.actor.color, pos(x, future.lastMove.actor.pos.y))) {
+                    if (future.isAttacked(!future.lastMove.actor.color, pos(x, future.lastMove.actor.pos.y))) {
                         res.remove(future);
                         break;
                     }
                 }
+            }
+            if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(!future.lastMove.actor.color).king.pos)) {
+                future.check = true;
             }
         }
         //endregion
@@ -127,16 +133,19 @@ public class Board {
                 getKingData(move.actor.color).rook7Moved = true;
             }
         }
-        res.generatePossiblyCheckMoves();
+        res.generatePossiblyCheckMoves(!res.lastMove.actor.color);
         return res;
     }
 
-    private void generatePossiblyCheckMoves() {
+    private void generatePossiblyCheckMoves(boolean color) {
         moves = new ArrayList<>();
+        Piece target;
+        int x;
+        int y;
         for (Piece actor : board.values()) {
-            Piece target;
-            int x;
-            int y;
+            if (actor.color != color) {
+                continue;
+            }
             switch (actor.type) {
                 case pawn -> {
                     x = actor.pos.x;
@@ -300,16 +309,24 @@ public class Board {
     }
     //endregion
 
-    private boolean isAttacked(boolean attacker, Position pos) {
+    public boolean isAttacked(boolean attacker, Position pos) {
+        boolean res = false;
         for (Move move : moves) {
             if ((move instanceof PeaceMove)) {
                 continue;
             }
             if (move.actor.color == attacker) {
-                return move.dest == pos;
+                res |= move.dest.equals(pos);
             }
         }
-        return attacks.get(pos).getAttack(attacker);
+        for (Piece actor : board.values()) {
+            if (actor.type == pawn) {
+                if (actor.color == attacker) {
+                    res |= (actor.pos.y + pawnDirection(attacker) == pos.y) && (Math.abs(actor.pos.x - pos.x) == 1);
+                }
+            }
+        }
+        return res;
     }
 
     private KingData getKingData(boolean color) {
@@ -325,5 +342,9 @@ public class Board {
         } else {
             white = data;
         }
+    }
+
+    public Collection<Piece> getPieces() {
+        return board.values();
     }
 }

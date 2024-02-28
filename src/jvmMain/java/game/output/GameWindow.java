@@ -15,13 +15,13 @@ public class GameWindow extends JFrame {
         setIgnoreRepaint(true);
         System.out.println(Toolkit.getDefaultToolkit().getScreenSize());
         setResizable(false);
-        setSize(DevConfig.WIDTH, DevConfig.HEIGHT);
-        this.setLocation(-10,0);
+        setSize(DevConfig.tileSize * 8, DevConfig.tileSize * 8);
+        this.setLocation(-10, 0);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         //region Add canvas(for buffer strategy I think?? might be unnecessary)
         Canvas canvas = new Canvas();
         canvas.setIgnoreRepaint(true);
-        canvas.setSize(DevConfig.WIDTH, DevConfig.HEIGHT);
+        canvas.setSize(DevConfig.tileSize * 8, DevConfig.tileSize * 8);
         add(canvas);
         pack();
         //endregion
@@ -40,6 +40,7 @@ public class GameWindow extends JFrame {
         //endregion
         setVisible(true);
     }
+
     public void showCanvas() {
         strategy.show();
     }

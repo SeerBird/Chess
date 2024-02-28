@@ -9,9 +9,11 @@ import java.awt.*;
 public class Button extends Label {
     private Runnable action;
     private boolean pressed;
+    public Color color;
 
-    public Button(int x, int y, int width, int height, Runnable action, String text, Color textColor) {
-        super(x, y, width, height, text, textColor);
+    public Button(int x, int y, int width, int height, Runnable action, Color color) {
+        super(x, y, width, height, "", Color.BLACK);
+        this.color = color;
         this.action = action;
         pressed = false;
     }
@@ -26,7 +28,6 @@ public class Button extends Label {
     public void release() {
         if (pressed) {//unnecessary?
             action.run();
-            Audio.playSound(Sound.button);
         }
         pressed = false;
     }
