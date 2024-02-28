@@ -2,18 +2,18 @@ package game.model;
 
 import org.jetbrains.annotations.NotNull;
 
+import static game.model.Position.pos;
+
 public class Move {
-    public int targetx;
-    public int targety;
+    public Position dest;
     /**
      * Will not be changed after
      */
     @NotNull
     public Piece actor;
 
-    public Move(int x, int y, @NotNull Piece actor) {
-        targetx = x;
-        targety = y;
+    public Move(int destx, int desty, @NotNull Piece actor) {
+        dest = pos(destx, desty);
         this.actor = actor;
     }
 }

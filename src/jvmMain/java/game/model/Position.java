@@ -9,7 +9,17 @@ public class Position {
         this.y = y;
     }
 
-    public Position pos(int x, int y) {
+    @Override
+    public boolean equals(Object obj) {
+        if(obj.getClass()== Position.class){
+            if(((Position)obj).x==x){
+                return ((Position) obj).y == y;
+            }
+        }
+        return false;
+    }
+
+    public static Position pos(int x, int y) {
         return new Position(x, y);
     }
 }
