@@ -24,32 +24,37 @@ public class GameHandler {
     }
 
     public static void start() {
-        history.clear();
-        history.add(new Board());
-        history.get(0).reset();
-        black = new Menu();
-        white = new Menu();
-        MoveGenerator player;
-        ArrayList<Board> futures;
-        int choice = -1;
-        for (int i = 0; ; i++) {
-            if (i % 2 == 0) {
-                player = white;
-            } else {
-                player = black;
+        while(true) {
+            history.clear();
+            history.add(new Board());
+            history.get(0).reset();
+            black = new Menu();
+            white = new Menu();
+            MoveGenerator player;
+            ArrayList<Board> futures;
+            int choice;
+            boolean turnColor;
+            for (int i = 0; ; i++) {
+                turnColor = i % 2 == 1;
+                if (turnColor) {
+                    player = black;
+                } else {
+                    player = white;
+                }
+                futures = getBoard().getPossibleMoves(turnColor);
+                logger.info(String.valueOf(futures.size()));
+                if (futures.isEmpty()) {
+                    player.endGame(false);
+                    getOpponent(player).endGame(true);
+                    break;
+                }
+                try {
+                    choice = player.selectFuture(futures).get();
+                } catch (ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                history.add(futures.get(choice));
             }
-            futures = getBoard().getPossibleMoves(i % 2 == 1);
-            try {
-                choice = player.selectFuture(futures).get();
-            } catch (ExecutionException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            if (choice == -2) {
-                player.endGame(false);
-                getOpponent(player).endGame(true);
-                break;
-            }
-            history.add(futures.get(choice));
         }
     }
 

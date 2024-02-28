@@ -79,7 +79,7 @@ public class Board {
         //endregion
         //region retroactively check for check and castling path safety. remove invalid board states accordingly.
         for (Board future : new ArrayList<>(res)) {
-            if (future.isAttacked(future.lastMove.actor.color, future.getKingData(future.lastMove.actor.color).king.pos)) {
+            if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(future.lastMove.actor.color).king.pos)) {
                 res.remove(future);
                 continue;
             }
@@ -125,12 +125,12 @@ public class Board {
                 }
             }
             newData.kingMoved = true;
-            setKingData(move.actor.color, newData);
+            res.setKingData(move.actor.color, newData);
         } else if (move.actor.type == rook) {
             if (move.actor.pos.x == 0) {
-                getKingData(move.actor.color).rook0Moved = true;
+                res.getKingData(move.actor.color).rook0Moved = true;
             } else if (move.actor.pos.x == 7) {
-                getKingData(move.actor.color).rook7Moved = true;
+                res.getKingData(move.actor.color).rook7Moved = true;
             }
         }
         res.generatePossiblyCheckMoves(!res.lastMove.actor.color);
@@ -186,47 +186,47 @@ public class Board {
                     //endregion
                 }
                 case bishop -> {
-                    addMoveRay(moves, actor, 1, 1);
-                    addMoveRay(moves, actor, 1, -1);
-                    addMoveRay(moves, actor, -1, -1);
-                    addMoveRay(moves, actor, -1, 1);
+                    addMoveRay(actor, 1, 1);
+                    addMoveRay(actor, 1, -1);
+                    addMoveRay(actor, -1, -1);
+                    addMoveRay(actor, -1, 1);
                 }
                 case knight -> {
-                    addMoveIfSimplyValid(moves, actor, 1, 2);
-                    addMoveIfSimplyValid(moves, actor, 1, -2);
-                    addMoveIfSimplyValid(moves, actor, -1, -2);
-                    addMoveIfSimplyValid(moves, actor, -1, 2);
-                    addMoveIfSimplyValid(moves, actor, 2, 1);
-                    addMoveIfSimplyValid(moves, actor, 2, -1);
-                    addMoveIfSimplyValid(moves, actor, -2, -1);
-                    addMoveIfSimplyValid(moves, actor, -2, +1);
+                    addMoveIfSimplyValid(actor, 1, 2);
+                    addMoveIfSimplyValid(actor, 1, -2);
+                    addMoveIfSimplyValid(actor, -1, -2);
+                    addMoveIfSimplyValid(actor, -1, 2);
+                    addMoveIfSimplyValid(actor, 2, 1);
+                    addMoveIfSimplyValid(actor, 2, -1);
+                    addMoveIfSimplyValid(actor, -2, -1);
+                    addMoveIfSimplyValid(actor, -2, +1);
                 }
                 case queen -> {
-                    addMoveRay(moves, actor, 1, 1);
-                    addMoveRay(moves, actor, 1, -1);
-                    addMoveRay(moves, actor, -1, -1);
-                    addMoveRay(moves, actor, -1, 1);
-                    addMoveRay(moves, actor, 1, 0);
-                    addMoveRay(moves, actor, 0, -1);
-                    addMoveRay(moves, actor, -1, 0);
-                    addMoveRay(moves, actor, 0, 1);
+                    addMoveRay(actor, 1, 1);
+                    addMoveRay(actor, 1, -1);
+                    addMoveRay(actor, -1, -1);
+                    addMoveRay(actor, -1, 1);
+                    addMoveRay(actor, 1, 0);
+                    addMoveRay(actor, 0, -1);
+                    addMoveRay(actor, -1, 0);
+                    addMoveRay(actor, 0, 1);
                 }
                 case rook -> {
-                    addMoveRay(moves, actor, 0, 1);
-                    addMoveRay(moves, actor, 0, -1);
-                    addMoveRay(moves, actor, -1, 0);
-                    addMoveRay(moves, actor, 1, 0);
+                    addMoveRay(actor, 0, 1);
+                    addMoveRay(actor, 0, -1);
+                    addMoveRay(actor, -1, 0);
+                    addMoveRay(actor, 1, 0);
                 }
                 case king -> {
                     //region movement
-                    addMoveIfSimplyValid(moves, actor, 1, 1);
-                    addMoveIfSimplyValid(moves, actor, 1, -1);
-                    addMoveIfSimplyValid(moves, actor, -1, -1);
-                    addMoveIfSimplyValid(moves, actor, -1, 1);
-                    addMoveIfSimplyValid(moves, actor, 1, 0);
-                    addMoveIfSimplyValid(moves, actor, 0, -1);
-                    addMoveIfSimplyValid(moves, actor, -1, 0);
-                    addMoveIfSimplyValid(moves, actor, 0, 1);
+                    addMoveIfSimplyValid(actor, 1, 1);
+                    addMoveIfSimplyValid(actor, 1, -1);
+                    addMoveIfSimplyValid(actor, -1, -1);
+                    addMoveIfSimplyValid(actor, -1, 1);
+                    addMoveIfSimplyValid(actor, 1, 0);
+                    addMoveIfSimplyValid(actor, 0, -1);
+                    addMoveIfSimplyValid(actor, -1, 0);
+                    addMoveIfSimplyValid(actor, 0, 1);
                     //endregion
                     //region castle
                     if (!check) {
@@ -257,7 +257,7 @@ public class Board {
     }
 
     //region move helper methods
-    private void addMoveRay(ArrayList<Move> moves, Piece actor, int dx, int dy) {
+    private void addMoveRay(Piece actor, int dx, int dy) {
         int targetx;
         int targety;
         Piece target;
@@ -281,7 +281,7 @@ public class Board {
     /**
      * A simply valid move is a move which makes the piece stay on the board and doesn't capture pieces of the same color
      */
-    private void addMoveIfSimplyValid(ArrayList<Move> moves, @NotNull Piece actor, int dx, int dy) {
+    private void addMoveIfSimplyValid(@NotNull Piece actor, int dx, int dy) {
         int x = actor.pos.x + dx;
         int y = actor.pos.y + dy;
         if (x > 7 || x < 0 || y > 7 || y < 0) {
