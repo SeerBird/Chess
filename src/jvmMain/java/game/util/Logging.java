@@ -9,17 +9,18 @@ import java.util.Date;
 import java.util.logging.*;
 
 public class Logging {
-    public static void setup() throws IOException, URISyntaxException {
+    public static void setup()// throws IOException, URISyntaxException
+    {
         //region set up my logger
         Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-        FileHandler fileTxt = new FileHandler(Util.path + "TurtleLog%u.%g.txt", true);
+        //FileHandler fileTxt = new FileHandler(Util.path + "TurtleLog%u.%g.txt", true);
         ConsoleHandler console = new ConsoleHandler();
         GFormatter formatter = new GFormatter(Util.path);
-        fileTxt.setFormatter(formatter);
+        //fileTxt.setFormatter(formatter);
         console.setFormatter(formatter);
         console.setLevel(Level.INFO);
-        fileTxt.setLevel(Level.INFO);
-        logger.addHandler(fileTxt);
+        //fileTxt.setLevel(Level.INFO);
+        //logger.addHandler(fileTxt);
         logger.addHandler(console);
         //endregion
         //region silence default console

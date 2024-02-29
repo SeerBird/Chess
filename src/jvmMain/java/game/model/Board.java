@@ -1,5 +1,9 @@
 package game.model;
 
+import game.model.moves.CastleMove;
+import game.model.moves.Move;
+import game.model.moves.PromotionMove;
+import game.util.DevConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -10,6 +14,7 @@ import java.util.Map;
 
 import static game.model.PieceType.*;
 import static game.model.Position.pos;
+import static game.model.moves.MoveMode.*;
 
 public class Board {
     /**
@@ -20,7 +25,6 @@ public class Board {
      */
     boolean check;
     Map<Position, Piece> board;
-    Map<Position, Attack> attacks;
     KingData black;
     KingData white;
     public Move lastMove;
@@ -29,7 +33,7 @@ public class Board {
     public Board() {
         check = false;
         board = new HashMap<>();
-        lastMove = new Move(4, 0, new Piece(true, king, pos(4, 0)));
+        lastMove = new Move(4, 0, new Piece(true, king, pos(4, 0)), peaceful);
     }
 
     @Nullable
@@ -70,6 +74,36 @@ public class Board {
 
     public ArrayList<Board> getPossibleMoves(boolean color) {
         ArrayList<Board> res = new ArrayList<>();
+        //region check for draws by insufficient material
+        if (board.values().size() < 5) {
+            if (board.values().size() == 2) {
+                return res;
+            } else if (board.values().size() == 3) {
+                for (Piece material : board.values()) {
+                    if (material.type == knight || material.type == bishop) {
+                        return res;
+                    }
+                }
+            } else if (board.values().size() == 4) {
+                ArrayList<Piece> bishops = new ArrayList<>();
+                for (Piece material : board.values()) {
+                    if (material.type == bishop) {
+                        bishops.add(material);
+                    }
+                }
+                if (bishops.size() == 2) {
+                    Piece bishop1 = bishops.get(0);
+                    Piece bishop2 = bishops.get(1);
+                    if (bishop1.color != bishop2.color) {
+                        if (tileColor(bishop1.pos.x, bishop1.pos.y) == tileColor(bishop2.pos.x, bishop2.pos.y)) {
+                            return res;
+                        }
+                    }
+                }
+            }
+        }
+
+        //endregion
         //region create and add all the futures that the moves would create
         for (Move move : moves) {
             if (color == move.actor.color) {
@@ -102,16 +136,20 @@ public class Board {
         return res;
     }
 
+    public static boolean tileColor(int x, int y) {
+        return (x % 2 == 0 ^ y % 2 == 0);
+    }
+
     @NotNull
     private Board makeMove(@NotNull Move move) {
         Board res = new Board();
         res.board = new HashMap<>(board);
-        res.board.put(move.dest, new Piece(move.actor, move.dest));
-        res.board.remove(move.actor.pos);
         res.lastMove = move;
-        res.setKingData(true, black);
-        res.setKingData(false, white);
+        res.setKingData(true, new KingData(black, black.king));
+        res.setKingData(false, new KingData(white, white.king));
         if (move.actor.type == king) {
+            res.board.put(move.dest, new Piece(move.actor, move.dest));
+            res.board.remove(move.actor.pos);
             KingData newData = new KingData(getKingData(move.actor.color), res.board.get(move.dest));
             if (move instanceof CastleMove) {
                 if (move.dest.x == 2) {
@@ -127,11 +165,29 @@ public class Board {
             newData.kingMoved = true;
             res.setKingData(move.actor.color, newData);
         } else if (move.actor.type == rook) {
+            res.board.put(move.dest, new Piece(move.actor, move.dest));
+            res.board.remove(move.actor.pos);
             if (move.actor.pos.x == 0) {
                 res.getKingData(move.actor.color).rook0Moved = true;
             } else if (move.actor.pos.x == 7) {
                 res.getKingData(move.actor.color).rook7Moved = true;
             }
+        } else if (move.actor.type == pawn) {
+            if (move instanceof PromotionMove) {
+                res.board.remove(move.actor.pos);
+                res.board.put(((PromotionMove) move).promoted.pos, ((PromotionMove) move).promoted);
+            } else {
+                if (move.dest.x != move.actor.pos.x) {
+                    if (getPiece(move.dest.x, move.dest.y) == null) { //en passant
+                        res.board.remove(pos(move.dest.x, move.dest.y - pawnDirection(move.actor.color)));
+                    }
+                }
+                res.board.put(move.dest, new Piece(move.actor, move.dest));
+                res.board.remove(move.actor.pos);
+            }
+        } else {
+            res.board.put(move.dest, new Piece(move.actor, move.dest));
+            res.board.remove(move.actor.pos);
         }
         res.generatePossiblyCheckMoves(!res.lastMove.actor.color);
         return res;
@@ -154,9 +210,9 @@ public class Board {
                     //region en passant
                     if ((target = lastMove.actor).type == pawn) {
                         if (Math.abs(target.pos.y - lastMove.dest.y) == 2) {
-                            if (target.pos.y == y) {
-                                if (Math.abs(target.pos.x - y) == 1) {
-                                    moves.add(new Move(target.pos.x, y + direction, actor));
+                            if (lastMove.dest.y == y) {
+                                if (Math.abs(lastMove.dest.x - x) == 1) {
+                                    moves.add(new Move(lastMove.dest.x, y + direction, actor, capture));
                                 }
                             }
                         }
@@ -165,24 +221,41 @@ public class Board {
                     //region double jump
                     if ((actor.color && y == 1) || ((!actor.color) && y == 6)) {
                         if (getPiece(x, y + direction) == null && getPiece(x, y + 2 * direction) == null) {
-                            moves.add(new PeaceMove(x, y + 2 * direction, actor));
+                            moves.add(new Move(x, y + 2 * direction, actor, peaceful));
                         }
                     }
                     //endregion
+                    //region potential promotions
                     //region capture
+                    ArrayList<Move> potentialPromotions = new ArrayList<>();
                     if (isFoe(actor.color, x + 1, y + direction)) {
-                        moves.add(new Move(x + 1, y + direction, actor));
+                        potentialPromotions.add(new Move(x + 1, y + direction, actor, capture));
                     }
                     if (isFoe(actor.color, x - 1, y + direction)) {
-                        moves.add(new Move(x - 1, y + direction, actor));
+                        potentialPromotions.add(new Move(x - 1, y + direction, actor, capture));
                     }
                     //endregion
                     //region normal move
                     if (y + direction > 0 && y + direction < 8) {
                         if (getPiece(x, y + direction) == null) {
-                            moves.add(new PeaceMove(x, y + direction, actor));
+                            potentialPromotions.add(new Move(x, y + direction, actor, peaceful));
                         }
                     }
+                    //endregion
+                    //region check for promotions
+                    for (Move move : potentialPromotions) {
+                        if ((move.dest.y == 7 && move.actor.color) || (move.dest.y == 0 && !move.actor.color)) {
+                            for (PieceType type : PieceType.values()) {
+                                if (type == king) {
+                                    continue;
+                                }
+                                moves.add(new PromotionMove(move.dest.x, move.dest.y, move.actor, move.mode, type));
+                            }
+                        } else {
+                            moves.add(move);
+                        }
+                    }
+                    //endregion
                     //endregion
                 }
                 case bishop -> {
@@ -268,9 +341,9 @@ public class Board {
                 if (targetx > 7 || targetx < 0 || targety > 7 || targety < 0) {
                     break;
                 }
-                moves.add(new Move(targetx, targety, actor));
+                moves.add(new Move(targetx, targety, actor, normal));
             } else if (target.color ^ actor.color) {
-                moves.add(new Move(targetx, targety, actor));
+                moves.add(new Move(targetx, targety, actor, capture));
                 break;
             } else {
                 break;
@@ -289,11 +362,13 @@ public class Board {
         }
         Piece target;
         if ((target = getPiece(x, y)) != null) {
-            if (target.color == actor.color) {
-                return;
+            if (target.color != actor.color) {
+                moves.add(new Move(x, y, actor, capture));
             }
+        } else {
+            moves.add(new Move(x, y, actor, normal));
         }
-        moves.add(new Move(x, y, actor));
+
     }
 
     private int pawnDirection(boolean color) {
@@ -312,7 +387,7 @@ public class Board {
     public boolean isAttacked(boolean attacker, Position pos) {
         boolean res = false;
         for (Move move : moves) {
-            if ((move instanceof PeaceMove)) {
+            if ((move.mode == peaceful)) {
                 continue;
             }
             if (move.actor.color == attacker) {

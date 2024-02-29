@@ -1,13 +1,17 @@
 package game;
 
+import game.ML.Whacky;
 import game.model.Board;
 import game.output.GameWindow;
 import game.output.Renderer;
 import game.output.ui.Menu;
+import game.util.DevConfig;
+import game.util.Logging;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.Logger;
 
 
@@ -15,26 +19,31 @@ public class GameHandler {
     private final static Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     static final GameWindow window = new GameWindow();
     static final ArrayList<Board> history = new ArrayList<>();
+    static final Queue<Long> lastGames = new LinkedBlockingDeque<>(100);
+
     static MoveGenerator black;
     static MoveGenerator white;
 
-    public static void out() {
-        Renderer.drawImage(window.getCanvas());
-        window.showCanvas();
-    }
-
     public static void start() {
-        while(true) {
+        Logging.setup();
+        for(int i=0;i<99;i++){
+            lastGames.add(0L);
+        }
+        for (int count = 0; true; count++) {
             history.clear();
             history.add(new Board());
             history.get(0).reset();
-            black = new Menu();
-            white = new Menu();
+            //out();
+            black = new Whacky();
+            white = new Whacky();
             MoveGenerator player;
             ArrayList<Board> futures;
             int choice;
             boolean turnColor;
             for (int i = 0; ; i++) {
+                if (i == 100000) {
+                    i = 0;
+                }
                 turnColor = i % 2 == 1;
                 if (turnColor) {
                     player = black;
@@ -42,10 +51,16 @@ public class GameHandler {
                     player = white;
                 }
                 futures = getBoard().getPossibleMoves(turnColor);
-                logger.info(String.valueOf(futures.size()));
                 if (futures.isEmpty()) {
                     player.endGame(false);
                     getOpponent(player).endGame(true);
+                    lastGames.add(System.nanoTime());
+                    long time = lastGames.remove();
+                    if (count == 100) {
+                        out();
+                        count = 0;
+                        logger.info(String.valueOf(99/((System.nanoTime()-time)/Math.pow(10,9)))+" games per second");
+                    }
                     break;
                 }
                 try {
@@ -56,6 +71,17 @@ public class GameHandler {
                 history.add(futures.get(choice));
             }
         }
+    }
+
+    public static void out() {
+        Board savedBoard = getBoard();
+        Thread render = new Thread(() -> {
+            synchronized (window) {
+                Renderer.drawImage(window.getCanvas(), savedBoard);
+                window.showCanvas();
+            }
+        });
+        render.start();
     }
 
     private static MoveGenerator getOpponent(MoveGenerator player) {

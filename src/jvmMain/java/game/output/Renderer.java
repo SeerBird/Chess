@@ -5,8 +5,8 @@ import game.GameHandler;
 import game.Resources;
 import game.model.Board;
 import game.model.Piece;
+import game.model.Position;
 import game.output.animations.Animation;
-import game.output.ui.IElement;
 import game.output.ui.Menu;
 import game.output.ui.rectangles.Button;
 import game.output.ui.rectangles.Label;
@@ -18,7 +18,6 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.util.ArrayList;
 
-import static game.model.Position.pos;
 import static game.util.DevConfig.tileSize;
 
 public class Renderer {
@@ -35,18 +34,13 @@ public class Renderer {
         }
     }
 
-    public static void drawImage(@NotNull Graphics g) { //I'm just gonna call this whenever something changes. optimize? never.
+    public static void drawImage(@NotNull Graphics g, Board board) { //I'm just gonna call this whenever something changes. optimize? never.
         Renderer.g = g;
         g.translate(x, y);
-        Board board = GameHandler.getBoard();
         //region board
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                if (i % 2 == 0 ^ j % 2 == 0) {
-                    g.setColor(DevConfig.black);
-                } else {
-                    g.setColor(DevConfig.white);
-                }
+                g.setColor(color(i, j));
                 /*
                 if (board.isAttacked(false, pos(i, j))){
                     g.setColor(Color.magenta);
@@ -58,16 +52,38 @@ public class Renderer {
         }
         //endregion
         update();
-        drawMenu();
-        for (Piece piece : GameHandler.getBoard().getPieces()) {
+        for (Piece piece : board.getPieces()) {
             g.drawImage(getImage(piece), piece.pos.x * tileSize, piece.pos.y * tileSize, tileSize, tileSize, null);
         }
+        drawMenu();
         g.dispose();
+    }
+
+    private static Color color(int x, int y) {
+        if (Board.tileColor(x, y)) {
+            return DevConfig.black;
+        } else {
+            return DevConfig.white;
+        }
     }
 
     //region Menu
     private static void drawMenu() {
-        if (Menu.getMoves() != null) {
+        if (Menu.getPromotions() != null) {
+            //region remove original pawn as if it isn't there
+            Position pos = Menu.getPromotions().get(0).move.actor.pos;
+            g.setColor(color(pos.x, pos.y));
+            g.fillRect(pos.x * tileSize, pos.y * tileSize, tileSize, tileSize);
+            //endregion
+            //region show the pawn as if it has moved
+            pos = Menu.getPromotions().get(0).move.dest;
+            g.fillRect(pos.x * tileSize, pos.y * tileSize, tileSize, tileSize);// if there is a piece there, it will be hidden
+            g.drawImage(getImage(Menu.getPromotions().get(0).move.actor), pos.x * tileSize, pos.y * tileSize, null);
+            //endregion
+            for (PromotionButton promotion : Menu.getPromotions()) {
+                drawPromotionButton(promotion);
+            }
+        } else if (Menu.getMoves() != null) {
             for (Button move : Menu.getMoves()) {
                 drawButton(move);
             }
@@ -88,6 +104,18 @@ public class Renderer {
             g.setColor(button.color);
         }
         g.fillRect(button.x, button.y, button.width, button.height);
+    }
+
+    private static void drawPromotionButton(@NotNull PromotionButton button) {
+        if (button.isPressed()) {
+            g.setColor(button.color.darker());
+        } else {
+            g.setColor(button.color);
+        }
+        g.fillRect(button.x, button.y, button.width, button.height);
+        g.drawLine(button.x + button.width / 2, button.y + button.height / 2,
+                button.move.dest.x * tileSize + tileSize / 2, button.move.dest.y * tileSize + tileSize / 2);
+        g.drawImage(getImage(button.move.promoted), button.x, button.y, button.width, button.height, null);
     }
 
     private static void drawToggleable(@NotNull Toggleable toggle) {
