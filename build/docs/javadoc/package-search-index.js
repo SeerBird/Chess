@@ -1,1 +1,0 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"game"},{"l":"game.connection"},{"l":"game.input"},{"l":"game.math"},{"l":"game.output"},{"l":"game.output.audio"},{"l":"game.output.ui"},{"l":"game.world"},{"l":"game.world.bodies"},{"l":"game.world.constraints"}];updateSearchResults();

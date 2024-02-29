@@ -14,4 +14,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "TurtleSmash"
+rootProject.name = "Chess"
