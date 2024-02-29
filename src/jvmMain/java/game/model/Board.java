@@ -246,7 +246,7 @@ public class Board {
                     for (Move move : potentialPromotions) {
                         if ((move.dest.y == 7 && move.actor.color) || (move.dest.y == 0 && !move.actor.color)) {
                             for (PieceType type : PieceType.values()) {
-                                if (type == king) {
+                                if (type == king || type == pawn) {
                                     continue;
                                 }
                                 moves.add(new PromotionMove(move.dest.x, move.dest.y, move.actor, move.mode, type));

@@ -4,7 +4,9 @@ import game.ML.Whacky;
 import game.model.Board;
 import game.output.GameWindow;
 import game.output.Renderer;
+import game.output.ui.Menu;
 import game.util.Logging;
+import game.util.Maths;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -19,6 +21,7 @@ public class GameHandler {
     static final Queue<Long> lastGames = new LinkedBlockingDeque<>(100);
     static MoveGenerator black;
     static MoveGenerator white;
+    static int maxTurns = 0;
 
     public static void start() {
         //region setup
@@ -32,8 +35,8 @@ public class GameHandler {
             boardHistory.clear();
             boardHistory.add(new Board());
             boardHistory.get(0).reset();
-            black = new Whacky();
-            white = new Whacky();
+            black = new Menu();
+            white = new Menu();
             //endregion
             //region helper locals
             MoveGenerator player;
@@ -54,17 +57,24 @@ public class GameHandler {
                 }
                 //endregion
                 futures = getBoard().getPossibleMoves(turnColor);
+                if(boardHistory.size()>100000){
+                    logger.severe("wot");
+                }
                 if (futures.isEmpty()) {
                     //region end game
                     player.endGame(false);
                     getOpponent(player).endGame(true);
                     lastGames.add(System.nanoTime());
                     long time = lastGames.remove();
+                    if (boardHistory.size() > maxTurns) {
+                        maxTurns = boardHistory.size();
+                    }
                     if (gameCount == 100) {
                         out();
                         gameCount = 0;
-                        logger.info(99 / ((System.nanoTime() - time) / Math.pow(10, 9)) + " games per second, " +
-                                Runtime.getRuntime().freeMemory() / Math.pow(2, 20) + " mb free");
+                        logger.info(Maths.round(99 / ((System.nanoTime() - time) / Math.pow(10, 9)),1) + " games per second, " +
+                                Maths.round(Runtime.getRuntime().freeMemory() / Math.pow(2, 20), 1) + " mb free, max " +
+                                maxTurns + " turns");
                     }
                     break;
                     //endregion
