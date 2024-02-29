@@ -7,7 +7,7 @@
 #Useless stuff
 .gradle
 build
-Release.ps1
+conveyor.conf
 # BlueJ files
 *.ctxt
 
