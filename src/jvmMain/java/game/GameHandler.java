@@ -35,8 +35,8 @@ public class GameHandler {
             boardHistory.clear();
             boardHistory.add(new Board());
             boardHistory.get(0).reset();
-            black = new Menu();
-            white = new Menu();
+            black = new Whacky();
+            white = new Whacky();
             //endregion
             //region helper locals
             MoveGenerator player;

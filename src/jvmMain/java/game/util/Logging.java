@@ -15,7 +15,7 @@ public class Logging {
         Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
         //FileHandler fileTxt = new FileHandler(Util.path + "TurtleLog%u.%g.txt", true);
         ConsoleHandler console = new ConsoleHandler();
-        GFormatter formatter = new GFormatter(Util.path);
+        GFormatter formatter = new GFormatter("your mom");
         //fileTxt.setFormatter(formatter);
         console.setFormatter(formatter);
         console.setLevel(Level.INFO);
