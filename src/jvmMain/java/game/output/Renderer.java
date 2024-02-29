@@ -77,6 +77,7 @@ public class Renderer {
             //endregion
             //region show the pawn as if it has moved
             pos = Menu.getPromotions().get(0).move.dest;
+            g.setColor(color(pos.x, pos.y));
             g.fillRect(pos.x * tileSize, pos.y * tileSize, tileSize, tileSize);// if there is a piece there, it will be hidden
             g.drawImage(getImage(Menu.getPromotions().get(0).move.actor), pos.x * tileSize, pos.y * tileSize, null);
             //endregion

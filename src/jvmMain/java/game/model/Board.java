@@ -236,7 +236,7 @@ public class Board {
                     }
                     //endregion
                     //region normal move
-                    if (y + direction > 0 && y + direction < 8) {
+                    if (y + direction >= 0 && y + direction < 8) {
                         if (getPiece(x, y + direction) == null) {
                             potentialPromotions.add(new Move(x, y + direction, actor, peaceful));
                         }
@@ -301,23 +301,32 @@ public class Board {
                     addMoveIfSimplyValid(actor, -1, 0);
                     addMoveIfSimplyValid(actor, 0, 1);
                     //endregion
-                    //region castle
+                    //region castle. region of shame.
                     if (!check) {
                         KingData data = getKingData(actor.color);
+                        Piece rookig;
                         if (!data.kingMoved) {
                             if (!data.rook0Moved) {
-                                if (getPiece(3, actor.pos.y) == null) {
-                                    if (getPiece(2, actor.pos.y) == null) {
-                                        if (getPiece(1, actor.pos.y) == null) {
-                                            moves.add(new CastleMove(2, actor.pos.y, actor));
+                                if ((rookig = getPiece(0, backLineY(actor.color))) != null) {
+                                    if (rookig.type == rook && rookig.color == actor.color) {
+                                        if (getPiece(3, actor.pos.y) == null) {
+                                            if (getPiece(2, actor.pos.y) == null) {
+                                                if (getPiece(1, actor.pos.y) == null) {
+                                                    moves.add(new CastleMove(2, actor.pos.y, actor));
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                             if (!data.rook7Moved) {
-                                if (getPiece(5, actor.pos.y) == null) {
-                                    if (getPiece(6, actor.pos.y) == null) {
-                                        moves.add(new CastleMove(6, actor.pos.y, actor));
+                                if ((rookig = getPiece(7, backLineY(actor.color))) != null) {
+                                    if (rookig.type == rook && rookig.color == actor.color) {
+                                        if (getPiece(5, actor.pos.y) == null) {
+                                            if (getPiece(6, actor.pos.y) == null) {
+                                                moves.add(new CastleMove(6, actor.pos.y, actor));
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -376,6 +385,13 @@ public class Board {
             return 1;
         }
         return -1;
+    }
+
+    private int backLineY(boolean color) {
+        if (color) {
+            return 0;
+        }
+        return 7;
     }
 
     private boolean isFoe(boolean color, int x, int y) {

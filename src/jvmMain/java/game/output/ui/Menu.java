@@ -71,7 +71,7 @@ public class Menu implements MoveGenerator {
                             promotions = new ArrayList<>();
                             for (int i = 0; i < groupedPromotions.get(dest).size(); i++) {
                                 Board future = groupedPromotions.get(dest).get(i);
-                                promotions.add(new PromotionButton(DevConfig.promotionMenuOffset + i * tileSize, (int) (3.5 * tileSize),
+                                promotions.add(new PromotionButton(tileSize*2 + i * tileSize, (int) (3.5 * tileSize),
                                         tileSize, tileSize, () -> {
                                     choice.value = futures.indexOf(future);
                                     synchronized (choice) {

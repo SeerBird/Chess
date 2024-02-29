@@ -57,7 +57,7 @@ public class GameHandler {
                 }
                 //endregion
                 futures = getBoard().getPossibleMoves(turnColor);
-                if(boardHistory.size()>100000){
+                if(boardHistory.size()>200000){
                     logger.severe("wot");
                 }
                 if (futures.isEmpty()) {
