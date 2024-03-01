@@ -9,9 +9,8 @@ import game.util.DevConfig;
 import game.util.Logging;
 import game.util.Maths;
 
-import java.util.*;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.Logger;
 
 
@@ -21,18 +20,18 @@ public class GameHandler {
     static final ArrayList<Board> boardHistory = new ArrayList<>();
     static MoveGenerator black;
     static MoveGenerator white;
-    static int maxTurns = 0;
-    static long lastTimedGame = 0;
+    static long lastTimedGame;
 
-    public static void start() {
+    public static void start() throws ExecutionException, InterruptedException {
         //region connect MoveGenerators
-        black = new Menu();
-        white = new Menu();
+        black = new Whacky();
+        white = new Whacky();
         //endregion
         //region setup
         Logging.setup();
         boardHistory.add(new Board());
         boardHistory.get(0).reset();
+        lastTimedGame = 0;
         out();
         //endregion
         for (int gameCount = 0; true; gameCount++) {
@@ -50,39 +49,35 @@ public class GameHandler {
                 }
                 //endregion
                 futures = getBoard().getPossibleMoves();
-                if (futures.isEmpty() || boardHistory.size() > DevConfig.turnLimit) {
-                    if (boardHistory.size() > DevConfig.turnLimit) {
-                        player.endGame(0);
-                        getOpponent(player).endGame(0);
-                    } else {
-                        player.endGame(-1);
-                        getOpponent(player).endGame(1);
-                        if (boardHistory.size() > maxTurns) {
-                            maxTurns = boardHistory.size();
-                        }
-                    }
-                    //region end game
-                    if (gameCount == 100) {
-                        out();
-                        gameCount = 0;
-                        logger.info(Maths.round(100 / ((System.nanoTime() - lastTimedGame) / Math.pow(10, 9)), 1)
-                                + " games per second, " +
-                                Maths.round(Runtime.getRuntime().freeMemory() / Math.pow(2, 20), 1)
-                                + " mb free, max " +
-                                maxTurns
-                                + " turns");
-                        lastTimedGame = System.nanoTime();
-                    }
+                //region break out of the loop if the game should end
+                if (futures == null || boardHistory.size() > DevConfig.turnLimit) {
+                    //region draw
+                    player.endGame(0);
+                    getOpponent(player).endGame(0);
+                    break;
+                    //endregion
+                } else if (futures.isEmpty()) {
+                    //region lose
+                    player.endGame(-1);
+                    getOpponent(player).endGame(1);
                     break;
                     //endregion
                 }
-                try {
-                    choice = player.selectFuture(futures).get();
-                } catch (ExecutionException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                //endregion
+                choice = player.selectFuture(futures).get();
                 boardHistory.add(futures.get(choice));
             }
+            //region MoveGenerator-independent output
+            if (gameCount == 100) {
+                out();
+                gameCount = 0;
+                logger.info(Maths.round(100 / ((System.nanoTime() - lastTimedGame) / Math.pow(10, 9)), 1)
+                        + " games per second, " +
+                        Maths.round(Runtime.getRuntime().freeMemory() / Math.pow(2, 20), 1)
+                        + " mb free");
+                lastTimedGame = System.nanoTime();
+            }
+            //endregion
             //region start a new game
             boardHistory.clear();
             boardHistory.add(new Board());

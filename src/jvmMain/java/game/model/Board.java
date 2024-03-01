@@ -71,16 +71,20 @@ public class Board {
         generatePossiblyCheckMoves();
     }
 
+    /**
+     *
+     * @return An {@link ArrayList} of all the boards accessible through available moves. {@code null} for draw, empty list for loss,
+     */
     public ArrayList<Board> getPossibleMoves() {
-        ArrayList<Board> res = new ArrayList<>();
+        ArrayList<Board> futures = new ArrayList<>();
         //region check for draws by insufficient material
         if (board.values().size() < 5) {
             if (board.values().size() == 2) {
-                return res;
+                return null;
             } else if (board.values().size() == 3) {
                 for (Piece material : board.values()) {
                     if (material.type == knight || material.type == bishop) {
-                        return res;
+                        return null;
                     }
                 }
             } else if (board.values().size() == 4) {
@@ -95,23 +99,22 @@ public class Board {
                     Piece bishop2 = bishops.get(1);
                     if (bishop1.color != bishop2.color) {
                         if (tileColor(bishop1.pos.x, bishop1.pos.y) == tileColor(bishop2.pos.x, bishop2.pos.y)) {
-                            return res;
+                            return null;
                         }
                     }
                 }
             }
         }
-
         //endregion
         //region create and add all the futures that the moves would create
         for (Move move : moves) {
-            res.add(makeMove(move));
+            futures.add(makeMove(move));
         }
         //endregion
-        for (Board future : new ArrayList<>(res)) {
+        for (Board future : new ArrayList<>(futures)) {
             //region retroactively check for check and castling path safety. remove invalid board states accordingly.
             if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(future.lastMove.actor.color).king.pos)) {
-                res.remove(future);
+                futures.remove(future);
                 continue;
             }
             if (future.lastMove instanceof CastleMove) {
@@ -120,7 +123,7 @@ public class Board {
                      x != future.lastMove.dest.x; // destination was just checked above
                      x += direction) {
                     if (future.isAttacked(!future.lastMove.actor.color, pos(x, future.lastMove.actor.pos.y))) {
-                        res.remove(future);
+                        futures.remove(future);
                         break;
                     }
                 }
@@ -132,7 +135,14 @@ public class Board {
             }
             //endregion
         }
-        return res;
+        //region stalemate
+        if(futures.isEmpty()){
+            if(!check){
+                return null;
+            }
+        }
+        //endregion
+        return futures;
     }
 
     public static boolean tileColor(int x, int y) {
@@ -141,55 +151,66 @@ public class Board {
 
     @NotNull
     private Board makeMove(@NotNull Move move) {
-        Board res = new Board();
-        res.board = new HashMap<>(board);
-        res.lastMove = move;
-        res.setKingData(true, new KingData(black, black.king));
-        res.setKingData(false, new KingData(white, white.king));
+        Board newBoard = new Board();
+        newBoard.board = new HashMap<>(board);
+        newBoard.lastMove = move;
+        newBoard.setKingData(true, new KingData(black, black.king));
+        newBoard.setKingData(false, new KingData(white, white.king));
         if (move.actor.type == king) {
-            res.board.put(move.dest, new Piece(move.actor, move.dest));
-            res.board.remove(move.actor.pos);
-            KingData newData = new KingData(getKingData(move.actor.color), res.board.get(move.dest));
+            //region move
+            newBoard.board.put(move.dest, new Piece(move.actor, move.dest));
+            newBoard.board.remove(move.actor.pos);
+            //endregion
+            KingData newData = new KingData(getKingData(move.actor.color), newBoard.board.get(move.dest));
+            //region castle
             if (move instanceof CastleMove) {
                 if (move.dest.x == 2) {
-                    res.board.remove(pos(0, move.actor.pos.y));
-                    res.board.put(pos(3, move.actor.pos.y), new Piece(move.actor.color, rook, pos(3, move.actor.pos.y)));
+                    newBoard.board.remove(pos(0, move.actor.pos.y));
+                    newBoard.board.put(pos(3, move.actor.pos.y), new Piece(move.actor.color, rook, pos(3, move.actor.pos.y)));
                     newData.rook0Moved = true;
                 } else {//move.dest == 6
-                    res.board.remove(pos(7, move.actor.pos.y));
-                    res.board.put(pos(5, move.actor.pos.y), new Piece(move.actor.color, rook, pos(5, move.actor.pos.y)));
+                    newBoard.board.remove(pos(7, move.actor.pos.y));
+                    newBoard.board.put(pos(5, move.actor.pos.y), new Piece(move.actor.color, rook, pos(5, move.actor.pos.y)));
                     newData.rook7Moved = true;
                 }
             }
+            //endregion
             newData.kingMoved = true;
-            res.setKingData(move.actor.color, newData);
-        } else if (move.actor.type == rook) {
-            res.board.put(move.dest, new Piece(move.actor, move.dest));
-            res.board.remove(move.actor.pos);
-            if (move.actor.pos.x == 0) {
-                res.getKingData(move.actor.color).rook0Moved = true;
+            newBoard.setKingData(move.actor.color, newData);
+        }
+        else if (move.actor.type == rook) {
+            //region move
+            newBoard.board.put(move.dest, new Piece(move.actor, move.dest));
+            newBoard.board.remove(move.actor.pos);
+            //endregion
+            if (move.actor.pos.x == 0) { //may repeat throughout the game. I don't care.
+                newBoard.getKingData(move.actor.color).rook0Moved = true;
             } else if (move.actor.pos.x == 7) {
-                res.getKingData(move.actor.color).rook7Moved = true;
+                newBoard.getKingData(move.actor.color).rook7Moved = true;
             }
-        } else if (move.actor.type == pawn) {
+        }
+        else if (move.actor.type == pawn) {
             if (move instanceof PromotionMove) {
-                res.board.remove(move.actor.pos);
-                res.board.put(((PromotionMove) move).promoted.pos, ((PromotionMove) move).promoted);
+                newBoard.board.remove(move.actor.pos);
+                newBoard.board.put(((PromotionMove) move).promoted.pos, ((PromotionMove) move).promoted);
             } else {
                 if (move.dest.x != move.actor.pos.x) {
                     if (getPiece(move.dest.x, move.dest.y) == null) { //en passant
-                        res.board.remove(pos(move.dest.x, move.dest.y - pawnDirection(move.actor.color)));
+                        newBoard.board.remove(pos(move.dest.x, move.dest.y - pawnDirection(move.actor.color))); //remove the attacked pawn
                     }
                 }
-                res.board.put(move.dest, new Piece(move.actor, move.dest));
-                res.board.remove(move.actor.pos);
+                newBoard.board.put(move.dest, new Piece(move.actor, move.dest));
+                newBoard.board.remove(move.actor.pos);
             }
-        } else {
-            res.board.put(move.dest, new Piece(move.actor, move.dest));
-            res.board.remove(move.actor.pos);
         }
-        res.generatePossiblyCheckMoves();
-        return res;
+        else {
+            //region move
+            newBoard.board.put(move.dest, new Piece(move.actor, move.dest));
+            newBoard.board.remove(move.actor.pos);
+            //endregion
+        }
+        newBoard.generatePossiblyCheckMoves();
+        return newBoard;
     }
 
     private void generatePossiblyCheckMoves() {
@@ -400,23 +421,23 @@ public class Board {
     //endregion
 
     public boolean isAttacked(boolean attacker, Position pos) {
-        boolean res = false;
+        boolean attacked = false;
         for (Move move : moves) {
             if ((move.mode == peaceful)) {
                 continue;
             }
             if (move.actor.color == attacker) {
-                res |= move.dest.equals(pos);
+                attacked |= move.dest.equals(pos);
             }
         }
         for (Piece actor : board.values()) {
             if (actor.type == pawn) {
                 if (actor.color == attacker) {
-                    res |= (actor.pos.y + pawnDirection(attacker) == pos.y) && (Math.abs(actor.pos.x - pos.x) == 1);
+                    attacked |= (actor.pos.y + pawnDirection(attacker) == pos.y) && (Math.abs(actor.pos.x - pos.x) == 1);
                 }
             }
         }
-        return res;
+        return attacked;
     }
 
     private KingData getKingData(boolean color) {
