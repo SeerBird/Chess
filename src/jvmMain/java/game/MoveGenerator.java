@@ -5,8 +5,11 @@ import game.model.Board;
 import java.util.ArrayList;
 
 public interface MoveGenerator {
+
     /**
-     * @return -2 to give up, index of the future to choose
+     *
+     * @param futures a non-empty list of accessible board states to choose from
+     * @return the index of the future chosen
      */
     public MoveFuture selectFuture(ArrayList<Board> futures);
     public void endGame(int victory);

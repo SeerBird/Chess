@@ -16,12 +16,6 @@ import static game.model.Position.pos;
 import static game.model.moves.MoveMode.*;
 
 public class Board {
-    /**
-     * If you are making a turn, the check is yours.
-     * Only moves that make you end the turn with no check are valid
-     * While your move is being used to create a new board state, the check is yours
-     * If the board state is valid, the opponent's check is calculated
-     */
     boolean check;
     Map<Position, Piece> board;
     KingData black;
@@ -33,6 +27,80 @@ public class Board {
         check = false;
         board = new HashMap<>();
         lastMove = new Move(4, 0, new Piece(true, king, pos(4, 0)), peaceful);
+    }
+
+    /**
+     * @return An {@link ArrayList} of all the board states accessible through available moves.
+     * {@code null} for draw, empty list for loss.
+     */
+    public ArrayList<Board> getPossibleMoves() {
+        ArrayList<Board> futures = new ArrayList<>();
+        //region check for draws by insufficient material
+        if (board.values().size() < 5) {
+            if (board.values().size() == 2) {
+                return null;
+            } else if (board.values().size() == 3) {
+                for (Piece material : board.values()) {
+                    if (material.type == knight || material.type == bishop) {
+                        return null;
+                    }
+                }
+            } else {
+                ArrayList<Piece> bishops = new ArrayList<>();
+                for (Piece material : board.values()) {
+                    if (material.type == bishop) {
+                        bishops.add(material);
+                    }
+                }
+                if (bishops.size() == 2) {
+                    Piece bishop1 = bishops.get(0);
+                    Piece bishop2 = bishops.get(1);
+                    if (bishop1.color != bishop2.color) {
+                        if (tileColor(bishop1.pos.x, bishop1.pos.y) == tileColor(bishop2.pos.x, bishop2.pos.y)) {
+                            return null;
+                        }
+                    }
+                }
+            }
+        }
+        //endregion
+        //region create and add all the futures that the moves would create
+        for (Move move : moves) {
+            futures.add(makeMove(move));
+        }
+        //endregion
+        for (Board future : new ArrayList<>(futures)) {
+            //region retroactively check for check and castling path safety. remove invalid futures accordingly.
+            if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(future.lastMove.actor.color).king.pos)) {
+                futures.remove(future);
+                continue;
+            }
+            if (future.lastMove instanceof CastleMove) {
+                int direction = (int) Math.signum(future.lastMove.dest.x - future.lastMove.actor.pos.x);
+                for (int x = future.lastMove.actor.pos.x + direction; // original location being under attack would have made this impossible
+                     x != future.lastMove.dest.x; // destination was just checked above
+                     x += direction) {
+                    if (future.isAttacked(!future.lastMove.actor.color, pos(x, future.lastMove.actor.pos.y))) {
+                        futures.remove(future);
+                        break;
+                    }
+                }
+            }
+            //endregion
+            //region determine whether the other king is in check now
+            if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(!future.lastMove.actor.color).king.pos)) {
+                future.check = true;
+            }
+            //endregion
+        }
+        //region return null if stalemate
+        if (futures.isEmpty()) {
+            if (!check) {
+                return null;
+            }
+        }
+        //endregion
+        return futures;
     }
 
     @Nullable
@@ -71,80 +139,6 @@ public class Board {
         generatePossiblyCheckMoves();
     }
 
-    /**
-     *
-     * @return An {@link ArrayList} of all the boards accessible through available moves. {@code null} for draw, empty list for loss,
-     */
-    public ArrayList<Board> getPossibleMoves() {
-        ArrayList<Board> futures = new ArrayList<>();
-        //region check for draws by insufficient material
-        if (board.values().size() < 5) {
-            if (board.values().size() == 2) {
-                return null;
-            } else if (board.values().size() == 3) {
-                for (Piece material : board.values()) {
-                    if (material.type == knight || material.type == bishop) {
-                        return null;
-                    }
-                }
-            } else if (board.values().size() == 4) {
-                ArrayList<Piece> bishops = new ArrayList<>();
-                for (Piece material : board.values()) {
-                    if (material.type == bishop) {
-                        bishops.add(material);
-                    }
-                }
-                if (bishops.size() == 2) {
-                    Piece bishop1 = bishops.get(0);
-                    Piece bishop2 = bishops.get(1);
-                    if (bishop1.color != bishop2.color) {
-                        if (tileColor(bishop1.pos.x, bishop1.pos.y) == tileColor(bishop2.pos.x, bishop2.pos.y)) {
-                            return null;
-                        }
-                    }
-                }
-            }
-        }
-        //endregion
-        //region create and add all the futures that the moves would create
-        for (Move move : moves) {
-            futures.add(makeMove(move));
-        }
-        //endregion
-        for (Board future : new ArrayList<>(futures)) {
-            //region retroactively check for check and castling path safety. remove invalid board states accordingly.
-            if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(future.lastMove.actor.color).king.pos)) {
-                futures.remove(future);
-                continue;
-            }
-            if (future.lastMove instanceof CastleMove) {
-                int direction = (int) Math.signum(future.lastMove.dest.x - future.lastMove.actor.pos.x);
-                for (int x = future.lastMove.actor.pos.x + direction; // original location being under attack would have made this impossible
-                     x != future.lastMove.dest.x; // destination was just checked above
-                     x += direction) {
-                    if (future.isAttacked(!future.lastMove.actor.color, pos(x, future.lastMove.actor.pos.y))) {
-                        futures.remove(future);
-                        break;
-                    }
-                }
-            }
-            //endregion
-            //region whether the other king is in check now
-            if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(!future.lastMove.actor.color).king.pos)) {
-                future.check = true;
-            }
-            //endregion
-        }
-        //region stalemate
-        if(futures.isEmpty()){
-            if(!check){
-                return null;
-            }
-        }
-        //endregion
-        return futures;
-    }
-
     public static boolean tileColor(int x, int y) {
         return (x % 2 == 0 ^ y % 2 == 0);
     }
@@ -177,8 +171,7 @@ public class Board {
             //endregion
             newData.kingMoved = true;
             newBoard.setKingData(move.actor.color, newData);
-        }
-        else if (move.actor.type == rook) {
+        } else if (move.actor.type == rook) {
             //region move
             newBoard.board.put(move.dest, new Piece(move.actor, move.dest));
             newBoard.board.remove(move.actor.pos);
@@ -188,8 +181,7 @@ public class Board {
             } else if (move.actor.pos.x == 7) {
                 newBoard.getKingData(move.actor.color).rook7Moved = true;
             }
-        }
-        else if (move.actor.type == pawn) {
+        } else if (move.actor.type == pawn) {
             if (move instanceof PromotionMove) {
                 newBoard.board.remove(move.actor.pos);
                 newBoard.board.put(((PromotionMove) move).promoted.pos, ((PromotionMove) move).promoted);
@@ -202,8 +194,7 @@ public class Board {
                 newBoard.board.put(move.dest, new Piece(move.actor, move.dest));
                 newBoard.board.remove(move.actor.pos);
             }
-        }
-        else {
+        } else {
             //region move
             newBoard.board.put(move.dest, new Piece(move.actor, move.dest));
             newBoard.board.remove(move.actor.pos);
@@ -246,8 +237,8 @@ public class Board {
                     }
                     //endregion
                     //region potential promotions
-                    //region capture
                     ArrayList<Move> potentialPromotions = new ArrayList<>();
+                    //region capture
                     if (isFoe(actor.color, x + 1, y + direction)) {
                         potentialPromotions.add(new Move(x + 1, y + direction, actor, capture));
                     }
@@ -380,9 +371,6 @@ public class Board {
         }
     }
 
-    /**
-     * A simply valid move is a move which makes the piece stay on the board and doesn't capture pieces of the same color
-     */
     private void addMoveIfSimplyValid(@NotNull Piece actor, int dx, int dy) {
         int x = actor.pos.x + dx;
         int y = actor.pos.y + dy;
@@ -420,7 +408,7 @@ public class Board {
     }
     //endregion
 
-    public boolean isAttacked(boolean attacker, Position pos) {
+    private boolean isAttacked(boolean attacker, Position pos) {
         boolean attacked = false;
         for (Move move : moves) {
             if ((move.mode == peaceful)) {
@@ -430,6 +418,7 @@ public class Board {
                 attacked |= move.dest.equals(pos);
             }
         }
+        //region this is only needed so that pawns stop kings from castling by attacking squares the kings need to go through
         for (Piece actor : board.values()) {
             if (actor.type == pawn) {
                 if (actor.color == attacker) {
@@ -437,6 +426,7 @@ public class Board {
                 }
             }
         }
+        //endregion
         return attacked;
     }
 

@@ -1,10 +1,9 @@
 package game;
 
-import game.ML.Whacky;
+import game.ML.MinMaxer;
 import game.model.Board;
 import game.output.GameWindow;
 import game.output.Renderer;
-import game.output.ui.Menu;
 import game.util.DevConfig;
 import game.util.Logging;
 import game.util.Maths;
@@ -24,8 +23,8 @@ public class GameHandler {
 
     public static void start() throws ExecutionException, InterruptedException {
         //region connect MoveGenerators
-        black = new Whacky();
-        white = new Whacky();
+        black = new MinMaxer();
+        white = new MinMaxer();
         //endregion
         //region setup
         Logging.setup();
@@ -68,13 +67,11 @@ public class GameHandler {
                 boardHistory.add(futures.get(choice));
             }
             //region MoveGenerator-independent output
-            if (gameCount == 100) {
+            if (gameCount == DevConfig.mandatoryOutputPeriod) {
                 out();
                 gameCount = 0;
-                logger.info(Maths.round(100 / ((System.nanoTime() - lastTimedGame) / Math.pow(10, 9)), 1)
-                        + " games per second, " +
-                        Maths.round(Runtime.getRuntime().freeMemory() / Math.pow(2, 20), 1)
-                        + " mb free");
+                logger.info(Maths.round(DevConfig.mandatoryOutputPeriod / ((System.nanoTime() - lastTimedGame) / Math.pow(10, 9)), 1)
+                        + " games per second.");
                 lastTimedGame = System.nanoTime();
             }
             //endregion
