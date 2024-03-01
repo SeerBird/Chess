@@ -3,7 +3,6 @@ package game.model;
 import game.model.moves.CastleMove;
 import game.model.moves.Move;
 import game.model.moves.PromotionMove;
-import game.util.DevConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,10 +68,10 @@ public class Board {
         //endregion
         black = new KingData(board.get(pos(4, 0)));
         white = new KingData(board.get(pos(4, 7)));
-        generatePossiblyCheckMoves(false);
+        generatePossiblyCheckMoves();
     }
 
-    public ArrayList<Board> getPossibleMoves(boolean color) {
+    public ArrayList<Board> getPossibleMoves() {
         ArrayList<Board> res = new ArrayList<>();
         //region check for draws by insufficient material
         if (board.values().size() < 5) {
@@ -106,13 +105,11 @@ public class Board {
         //endregion
         //region create and add all the futures that the moves would create
         for (Move move : moves) {
-            if (color == move.actor.color) {
-                res.add(makeMove(move));
-            }
+            res.add(makeMove(move));
         }
         //endregion
-        //region retroactively check for check and castling path safety. remove invalid board states accordingly.
         for (Board future : new ArrayList<>(res)) {
+            //region retroactively check for check and castling path safety. remove invalid board states accordingly.
             if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(future.lastMove.actor.color).king.pos)) {
                 res.remove(future);
                 continue;
@@ -128,11 +125,13 @@ public class Board {
                     }
                 }
             }
+            //endregion
+            //region whether the other king is in check now
             if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(!future.lastMove.actor.color).king.pos)) {
                 future.check = true;
             }
+            //endregion
         }
-        //endregion
         return res;
     }
 
@@ -189,17 +188,17 @@ public class Board {
             res.board.put(move.dest, new Piece(move.actor, move.dest));
             res.board.remove(move.actor.pos);
         }
-        res.generatePossiblyCheckMoves(!res.lastMove.actor.color);
+        res.generatePossiblyCheckMoves();
         return res;
     }
 
-    private void generatePossiblyCheckMoves(boolean color) {
+    private void generatePossiblyCheckMoves() {
         moves = new ArrayList<>();
         Piece target;
         int x;
         int y;
         for (Piece actor : board.values()) {
-            if (actor.color != color) {
+            if (actor.color == lastMove.actor.color) {
                 continue;
             }
             switch (actor.type) {
@@ -343,7 +342,7 @@ public class Board {
         int targetx;
         int targety;
         Piece target;
-        for (int i = 1; i < 7; i++) {
+        for (int i = 1; i < 8; i++) {
             targetx = actor.pos.x + dx * i;
             targety = actor.pos.y + dy * i;
             if ((target = getPiece(targetx, targety)) == null) {

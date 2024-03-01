@@ -9,5 +9,5 @@ public interface MoveGenerator {
      * @return -2 to give up, index of the future to choose
      */
     public MoveFuture selectFuture(ArrayList<Board> futures);
-    public void endGame(boolean victory);
+    public void endGame(int victory);
 }

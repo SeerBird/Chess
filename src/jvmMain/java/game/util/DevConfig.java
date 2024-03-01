@@ -11,5 +11,6 @@ public class DevConfig {
     public static Color red = new Color(255, 1, 1, 115);
     public static Color promotion = new Color(73, 0, 248, 115);
     public static int maximumRenderingThreads=10;
+    public static int turnLimit = 200000;
     //endregion
 }

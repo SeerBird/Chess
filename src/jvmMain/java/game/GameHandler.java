@@ -5,6 +5,7 @@ import game.model.Board;
 import game.output.GameWindow;
 import game.output.Renderer;
 import game.output.ui.Menu;
+import game.util.DevConfig;
 import game.util.Logging;
 import game.util.Maths;
 
@@ -18,63 +19,59 @@ public class GameHandler {
     private final static Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     static final GameWindow window = new GameWindow();
     static final ArrayList<Board> boardHistory = new ArrayList<>();
-    static final Queue<Long> lastGames = new LinkedBlockingDeque<>(100);
     static MoveGenerator black;
     static MoveGenerator white;
     static int maxTurns = 0;
+    static long lastTimedGame = 0;
 
     public static void start() {
+        //region connect MoveGenerators
+        black = new Menu();
+        white = new Menu();
+        //endregion
         //region setup
         Logging.setup();
-        for (int i = 0; i < 99; i++) {
-            lastGames.add(0L);
-        }
+        boardHistory.add(new Board());
+        boardHistory.get(0).reset();
+        out();
         //endregion
         for (int gameCount = 0; true; gameCount++) {
-            //region start a game
-            boardHistory.clear();
-            boardHistory.add(new Board());
-            boardHistory.get(0).reset();
-            black = new Whacky();
-            white = new Whacky();
-            //endregion
             //region helper locals
             MoveGenerator player;
             ArrayList<Board> futures;
             int choice;
-            boolean turnColor;
             //endregion
-            for (int i = 0; ; i++) {
-                if (i == 100000) {
-                    i = 0;
-                }
-                //region set current player
-                turnColor = i % 2 == 1;
-                if (turnColor) {
+            for (int turn = 0; ; turn++) {
+                //region set this turn's player
+                if (turn % 2 == 1) {
                     player = black;
                 } else {
                     player = white;
                 }
                 //endregion
-                futures = getBoard().getPossibleMoves(turnColor);
-                if(boardHistory.size()>200000){
-                    logger.severe("wot");
-                }
-                if (futures.isEmpty()) {
-                    //region end game
-                    player.endGame(false);
-                    getOpponent(player).endGame(true);
-                    lastGames.add(System.nanoTime());
-                    long time = lastGames.remove();
-                    if (boardHistory.size() > maxTurns) {
-                        maxTurns = boardHistory.size();
+                futures = getBoard().getPossibleMoves();
+                if (futures.isEmpty() || boardHistory.size() > DevConfig.turnLimit) {
+                    if (boardHistory.size() > DevConfig.turnLimit) {
+                        player.endGame(0);
+                        getOpponent(player).endGame(0);
+                    } else {
+                        player.endGame(-1);
+                        getOpponent(player).endGame(1);
+                        if (boardHistory.size() > maxTurns) {
+                            maxTurns = boardHistory.size();
+                        }
                     }
+                    //region end game
                     if (gameCount == 100) {
                         out();
                         gameCount = 0;
-                        logger.info(Maths.round(99 / ((System.nanoTime() - time) / Math.pow(10, 9)),1) + " games per second, " +
-                                Maths.round(Runtime.getRuntime().freeMemory() / Math.pow(2, 20), 1) + " mb free, max " +
-                                maxTurns + " turns");
+                        logger.info(Maths.round(100 / ((System.nanoTime() - lastTimedGame) / Math.pow(10, 9)), 1)
+                                + " games per second, " +
+                                Maths.round(Runtime.getRuntime().freeMemory() / Math.pow(2, 20), 1)
+                                + " mb free, max " +
+                                maxTurns
+                                + " turns");
+                        lastTimedGame = System.nanoTime();
                     }
                     break;
                     //endregion
@@ -86,6 +83,11 @@ public class GameHandler {
                 }
                 boardHistory.add(futures.get(choice));
             }
+            //region start a new game
+            boardHistory.clear();
+            boardHistory.add(new Board());
+            boardHistory.get(0).reset();
+            //endregion
         }
     }
 

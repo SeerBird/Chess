@@ -162,7 +162,7 @@ public class Menu implements MoveGenerator {
     }
 
     @Override
-    public void endGame(boolean victory) {
+    public void endGame(int victory) {
 
     }
 }
