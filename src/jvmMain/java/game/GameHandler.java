@@ -2,8 +2,10 @@ package game;
 
 import game.ML.MinMaxer;
 import game.model.Board;
+import game.model.moves.Move;
 import game.output.GameWindow;
 import game.output.Renderer;
+import game.output.ui.Menu;
 import game.util.DevConfig;
 import game.util.Logging;
 import game.util.Maths;
@@ -24,7 +26,10 @@ public class GameHandler {
     public static void start() throws ExecutionException, InterruptedException {
         //region connect MoveGenerators
         black = new MinMaxer();
-        white = new MinMaxer();
+        white = new Menu();
+        if (DevConfig.randomStart && Math.random() > 0.5) {
+            swapMoveGenerators();
+        }
         //endregion
         //region setup
         Logging.setup();
@@ -76,6 +81,7 @@ public class GameHandler {
             }
             //endregion
             //region start a new game
+            swapMoveGenerators();
             boardHistory.clear();
             boardHistory.add(new Board());
             boardHistory.get(0).reset();
@@ -92,6 +98,12 @@ public class GameHandler {
             }
         });
         render.start();
+    }
+
+    private static void swapMoveGenerators() {
+        MoveGenerator temp = black;
+        black = white;
+        white = temp;
     }
 
     private static MoveGenerator getOpponent(MoveGenerator player) {
