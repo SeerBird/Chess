@@ -1,8 +1,7 @@
 package game;
 
-import game.ML.MinMaxer;
+import game.simpleBots.MinMaxer;
 import game.model.Board;
-import game.model.moves.Move;
 import game.output.GameWindow;
 import game.output.Renderer;
 import game.output.ui.Menu;
@@ -18,7 +17,7 @@ import java.util.logging.Logger;
 public class GameHandler {
     private final static Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     static final GameWindow window = new GameWindow();
-    static final ArrayList<Board> boardHistory = new ArrayList<>();
+    static Board board;
     static MoveGenerator black;
     static MoveGenerator white;
     static long lastTimedGame;
@@ -26,15 +25,15 @@ public class GameHandler {
     public static void start() throws ExecutionException, InterruptedException {
         //region connect MoveGenerators
         black = new MinMaxer();
-        white = new Menu();
+        white = new MinMaxer();
         if (DevConfig.randomStart && Math.random() > 0.5) {
             swapMoveGenerators();
         }
         //endregion
         //region setup
         Logging.setup();
-        boardHistory.add(new Board());
-        boardHistory.get(0).reset();
+        board = new Board();
+        board.reset();
         lastTimedGame = 0;
         out();
         //endregion
@@ -54,7 +53,7 @@ public class GameHandler {
                 //endregion
                 futures = getBoard().getPossibleMoves();
                 //region break out of the loop if the game should end
-                if (futures == null || boardHistory.size() > DevConfig.turnLimit) {
+                if (futures == null || turn > DevConfig.turnLimit) {
                     //region draw
                     player.endGame(0);
                     getOpponent(player).endGame(0);
@@ -69,7 +68,7 @@ public class GameHandler {
                 }
                 //endregion
                 choice = player.selectFuture(futures).get();
-                boardHistory.add(futures.get(choice));
+                board=futures.get(choice);
             }
             //region MoveGenerator-independent output
             if (gameCount == DevConfig.mandatoryOutputPeriod) {
@@ -82,9 +81,8 @@ public class GameHandler {
             //endregion
             //region start a new game
             swapMoveGenerators();
-            boardHistory.clear();
-            boardHistory.add(new Board());
-            boardHistory.get(0).reset();
+            board = new Board();
+            board.reset();
             //endregion
         }
     }
@@ -114,6 +112,6 @@ public class GameHandler {
     }
 
     public static Board getBoard() {
-        return boardHistory.get(boardHistory.size() - 1);
+        return board;
     }
 }

@@ -6,16 +6,15 @@ import game.model.moves.PromotionMove;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.logging.Logger;
 
 import static game.model.PieceType.*;
 import static game.model.Position.pos;
 import static game.model.moves.MoveMode.*;
 
 public class Board {
+    private final static Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     boolean check;
     Map<Position, Piece> board;
     KingData black;
@@ -29,12 +28,12 @@ public class Board {
         lastMove = new Move(4, 0, new Piece(true, king, pos(4, 0)), peaceful);
     }
 
+
     /**
      * @return An {@link ArrayList} of all the board states accessible through available moves.
      * {@code null} for draw, empty list for loss.
      */
     public ArrayList<Board> getPossibleMoves() {
-        ArrayList<Board> futures = new ArrayList<>();
         //region check for draws by insufficient material
         if (board.values().size() < 5) {
             if (board.values().size() == 2) {
@@ -64,15 +63,18 @@ public class Board {
             }
         }
         //endregion
+        ArrayList<Board> futures = new ArrayList<>(moves.size());
         //region create and add all the futures that the moves would create
         for (Move move : moves) {
             futures.add(makeMove(move));
         }
         //endregion
-        for (Board future : new ArrayList<>(futures)) {
+        Board future;
+        for (Iterator<Board> iterator = futures.iterator(); iterator.hasNext(); ) {
+            future = iterator.next();
             //region retroactively check for check and castling path safety. remove invalid futures accordingly.
             if (future.isAttacked(!future.lastMove.actor.color, future.getKingData(future.lastMove.actor.color).king.pos)) {
-                futures.remove(future);
+                iterator.remove();
                 continue;
             }
             if (future.lastMove instanceof CastleMove) {
@@ -81,7 +83,7 @@ public class Board {
                      x != future.lastMove.dest.x; // destination was just checked above
                      x += direction) {
                     if (future.isAttacked(!future.lastMove.actor.color, pos(x, future.lastMove.actor.pos.y))) {
-                        futures.remove(future);
+                        iterator.remove();
                         break;
                     }
                 }
@@ -205,7 +207,7 @@ public class Board {
     }
 
     private void generatePossiblyCheckMoves() {
-        moves = new ArrayList<>();
+        moves = new ArrayList<>(20);
         Piece target;
         int x;
         int y;

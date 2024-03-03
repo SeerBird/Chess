@@ -1,4 +1,4 @@
-package game.ML;
+package game.simpleBots;
 
 import game.Choice;
 import game.MoveFuture;

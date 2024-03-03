@@ -10,9 +10,8 @@ public class DevConfig {
     public static Color green = new Color(49, 250, 4, 82);
     public static Color red = new Color(255, 1, 1, 115);
     public static Color promotion = new Color(73, 0, 248, 115);
-    public static int maximumRenderingThreads = 10;
     public static int turnLimit = 7500;
-    public static final int mandatoryOutputPeriod = 100;
+    public static final int mandatoryOutputPeriod = 500;
     public static boolean randomStart = true;
     //endregion
 }
