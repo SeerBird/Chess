@@ -390,7 +390,7 @@ public class Board {
 
     }
 
-    private int pawnDirection(boolean color) {
+    public int pawnDirection(boolean color) {
         if (color) {
             return 1;
         }
@@ -432,7 +432,7 @@ public class Board {
         return attacked;
     }
 
-    private KingData getKingData(boolean color) {
+    public KingData getKingData(boolean color) {
         if (color) {
             return black;
         }

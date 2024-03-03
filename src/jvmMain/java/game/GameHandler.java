@@ -1,10 +1,11 @@
 package game;
 
+import game.ML.Learner;
 import game.simpleBots.MinMaxer;
 import game.model.Board;
 import game.output.GameWindow;
 import game.output.Renderer;
-import game.output.ui.Menu;
+import game.ML.Learner.*;
 import game.util.DevConfig;
 import game.util.Logging;
 import game.util.Maths;
@@ -24,7 +25,7 @@ public class GameHandler {
 
     public static void start() throws ExecutionException, InterruptedException {
         //region connect MoveGenerators
-        black = new MinMaxer();
+        black = new Learner();
         white = new MinMaxer();
         if (DevConfig.randomStart && Math.random() > 0.5) {
             swapMoveGenerators();
@@ -68,7 +69,7 @@ public class GameHandler {
                 }
                 //endregion
                 choice = player.selectFuture(futures).get();
-                board=futures.get(choice);
+                board = futures.get(choice);
             }
             //region MoveGenerator-independent output
             if (gameCount == DevConfig.mandatoryOutputPeriod) {

@@ -1,5 +1,7 @@
 package game;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.io.IOException;
@@ -19,9 +21,12 @@ public class Resources {
     public static final Image wb;
     public static final Image wq;
     public static final Image wk;
+    public static final URL weights;
+    public static final String weightsFileName = "weights.bin";
 
     static {
         try {
+            weights = Resources.class.getResource(weightsFileName);
             bp = ImageIO.read(Objects.requireNonNull(Resources.class.getResource("bp.png")));
             br = ImageIO.read(Objects.requireNonNull(Resources.class.getResource("br.png")));
             bn = ImageIO.read(Objects.requireNonNull(Resources.class.getResource("bn.png")));
