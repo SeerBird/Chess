@@ -12,5 +12,5 @@ public interface MoveGenerator {
      * @return the index of the future chosen
      */
     public MoveFuture selectFuture(ArrayList<Board> futures);
-    public void endGame(int victory);
+    public void endGame(GameEnd gameEnd);
 }

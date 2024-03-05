@@ -13,11 +13,12 @@ public class DevConfig {
     //endregion
     //region board
     public static int turnLimit = 7500;
-    public static final int mandatoryOutputPeriod = 21;
+    public static final int mandatoryOutputPeriod = 3;
     public static boolean randomStart = true;
     //endregion
     //region ml
     public static final int layers = 3;
     public static final int layerWidth = 50;
+    public static final double learningRate = 1;
     //endregion
 }

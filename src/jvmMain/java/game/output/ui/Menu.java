@@ -1,9 +1,6 @@
 package game.output.ui;
 
-import game.Choice;
-import game.GameHandler;
-import game.MoveFuture;
-import game.MoveGenerator;
+import game.*;
 import game.model.Board;
 import game.model.Piece;
 import game.model.Position;
@@ -27,7 +24,7 @@ public class Menu implements MoveGenerator {
     private static ArrayList<Button> moves;
     private static ArrayList<PromotionButton> promotions;
     private static Focusable focused;
-    private static final Choice choice = new Choice(-1);
+    private static final Choice CHOICE = new Choice(-1);
 
     public static ArrayList<PromotionButton> getPromotions() {
         return promotions;
@@ -51,9 +48,9 @@ public class Menu implements MoveGenerator {
                         if (!(future.lastMove instanceof PromotionMove)) {
                             moves.add(new Button(future.lastMove.dest.x * tileSize, future.lastMove.dest.y * tileSize,
                                     tileSize, tileSize, () -> {
-                                choice.value = futures.indexOf(future);
-                                synchronized (choice) {
-                                    choice.notify();
+                                CHOICE.value = futures.indexOf(future);
+                                synchronized (CHOICE) {
+                                    CHOICE.notify();
                                 }
                                 moves = null;
                                 GameHandler.out();
@@ -73,9 +70,9 @@ public class Menu implements MoveGenerator {
                                 Board future = groupedPromotions.get(dest).get(i);
                                 promotions.add(new PromotionButton(tileSize*2 + i * tileSize, (int) (3.5 * tileSize),
                                         tileSize, tileSize, () -> {
-                                    choice.value = futures.indexOf(future);
-                                    synchronized (choice) {
-                                        choice.notify();
+                                    CHOICE.value = futures.indexOf(future);
+                                    synchronized (CHOICE) {
+                                        CHOICE.notify();
                                     }
                                     promotions = null;
                                     moves = null;
@@ -90,8 +87,8 @@ public class Menu implements MoveGenerator {
             }, DevConfig.green));
         }
         GameHandler.out();
-        choice.value = -1;
-        return new MoveFuture(choice);
+        CHOICE.value = -1;
+        return new MoveFuture(CHOICE);
     }
 
     public static boolean press(ArrayRealVector pos) {
@@ -162,7 +159,7 @@ public class Menu implements MoveGenerator {
     }
 
     @Override
-    public void endGame(int victory) {
+    public void endGame(GameEnd gameEnd) {
 
     }
 }

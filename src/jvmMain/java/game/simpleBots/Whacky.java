@@ -1,6 +1,7 @@
 package game.simpleBots;
 
 import game.Choice;
+import game.GameEnd;
 import game.MoveFuture;
 import game.MoveGenerator;
 import game.model.Board;
@@ -14,7 +15,7 @@ public class Whacky implements MoveGenerator {
     }
 
     @Override
-    public void endGame(int victory) {
+    public void endGame(GameEnd gameEnd) {
 
     }
 }

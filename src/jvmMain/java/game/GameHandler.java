@@ -1,11 +1,10 @@
 package game;
 
 import game.ML.Learner;
-import game.simpleBots.MinMaxer;
 import game.model.Board;
 import game.output.GameWindow;
 import game.output.Renderer;
-import game.ML.Learner.*;
+import game.simpleBots.MinMaxer;
 import game.util.DevConfig;
 import game.util.Logging;
 import game.util.Maths;
@@ -26,7 +25,8 @@ public class GameHandler {
     public static void start() throws ExecutionException, InterruptedException {
         //region connect MoveGenerators
         black = new Learner();
-        white = new MinMaxer();
+        white = new Learner();
+        double learnerWins = 0;
         if (DevConfig.randomStart && Math.random() > 0.5) {
             swapMoveGenerators();
         }
@@ -45,7 +45,7 @@ public class GameHandler {
             int choice;
             //endregion
             for (int turn = 0; ; turn++) {
-                //region set this turn's player
+                //region set this choice's player
                 if (turn % 2 == 1) {
                     player = black;
                 } else {
@@ -56,14 +56,17 @@ public class GameHandler {
                 //region break out of the loop if the game should end
                 if (futures == null || turn > DevConfig.turnLimit) {
                     //region draw
-                    player.endGame(0);
-                    getOpponent(player).endGame(0);
+                    player.endGame(GameEnd.draw);
+                    getOpponent(player).endGame(GameEnd.draw);
                     break;
                     //endregion
                 } else if (futures.isEmpty()) {
                     //region lose
-                    player.endGame(-1);
-                    getOpponent(player).endGame(1);
+                    player.endGame(GameEnd.loss);
+                    getOpponent(player).endGame(GameEnd.victory);
+                    if(getOpponent(player) instanceof Learner){
+                        learnerWins++;
+                    }
                     break;
                     //endregion
                 }
@@ -76,7 +79,8 @@ public class GameHandler {
                 out();
                 gameCount = 0;
                 logger.info(Maths.round(DevConfig.mandatoryOutputPeriod / ((System.nanoTime() - lastTimedGame) / Math.pow(10, 9)), 1)
-                        + " games per second.");
+                        + " games per second. Learner winrate: "+learnerWins/DevConfig.mandatoryOutputPeriod);
+                learnerWins=0;
                 lastTimedGame = System.nanoTime();
             }
             //endregion
