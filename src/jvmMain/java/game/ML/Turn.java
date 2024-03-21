@@ -14,4 +14,7 @@ class Turn {
         vectors = potentialVectors.get(id);
         potentialVectors.clear();
     }
+    public double output(){
+        return vectors[vectors.length-1][0];
+    }
 }

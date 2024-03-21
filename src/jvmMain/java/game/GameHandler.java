@@ -4,7 +4,9 @@ import game.ML.Learner;
 import game.model.Board;
 import game.output.GameWindow;
 import game.output.Renderer;
+import game.output.ui.Menu;
 import game.simpleBots.MinMaxer;
+import game.simpleBots.Whacky;
 import game.util.DevConfig;
 import game.util.Logging;
 import game.util.Maths;
@@ -24,7 +26,7 @@ public class GameHandler {
 
     public static void start() throws ExecutionException, InterruptedException {
         //region connect MoveGenerators
-        black = new Learner();
+        black = new Whacky();
         white = new Learner();
         double learnerWins = 0;
         if (DevConfig.randomStart && Math.random() > 0.5) {
@@ -64,7 +66,7 @@ public class GameHandler {
                     //region lose
                     player.endGame(GameEnd.loss);
                     getOpponent(player).endGame(GameEnd.victory);
-                    if(getOpponent(player) instanceof Learner){
+                    if(getOpponent(player) instanceof Learner||player instanceof Learner){
                         learnerWins++;
                     }
                     break;

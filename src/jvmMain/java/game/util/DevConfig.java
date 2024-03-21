@@ -18,7 +18,7 @@ public class DevConfig {
     //endregion
     //region ml
     public static final int layers = 3;
-    public static final int layerWidth = 50;
-    public static final double learningRate = 1;
+    public static final int layerWidth = 20;
+    public static final double learningRate = 0.15;
     //endregion
 }

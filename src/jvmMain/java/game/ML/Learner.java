@@ -17,12 +17,16 @@ public class Learner implements MoveGenerator {
     public static final double[][][] weights;
     public static final int inputSize = 8 * 8 * 12 + 4;
     final ArrayList<Turn> history; // for each choice, there are 5 vector outputs.
+    static Thread learningThread;
 
     public Learner() {
         history = new ArrayList<>();
     }
 
     static {
+        learningThread = new Thread(() -> {
+        });
+        learningThread.start();
         double[][][] temp;
         try {
             if (Resources.weights == null) {
@@ -42,13 +46,13 @@ public class Learner implements MoveGenerator {
             for (int layer = 0; layer < temp.length; layer++) {
                 for (int i = 0; i < temp[layer].length; i++) {
                     for (int j = 0; j < temp[layer][i].length; j++)
-                        temp[layer][i][j] = Math.random() * 4 - 2;
+                        temp[layer][i][j] = Math.random() * 2.4 - 1.2;
                 }
             }
         }
         weights = temp;
         if (weights == null) {
-            throw new RuntimeException("Failed to init weights");
+            throw new RuntimeException("Failed to init weights?");
         }
         Runtime.getRuntime().addShutdownHook(new Thread(Learner::saveWeights));
     }
@@ -157,46 +161,81 @@ public class Learner implements MoveGenerator {
     }
 
     private static double activation(double input) {
-        return Math.max(0.1 * input, input);
+        return input < 0 ? 0.5 * input : input;
+        //return 1 / (1 + Math.exp(-input));
     }
 
-    private static double activationDerivative(double input) {
-        return input < 0 ? 0.1 : 1;
+    private static double activationDerivative(double activation) {
+        return activation < 0 ? 0.5 : 1;
+        /*
+        double activation = activation(input);
+        return activation * (1 - activation);
+
+         */
     }
 
     @Override
     public void endGame(GameEnd gameEnd) {
         ArrayList<Turn> history = new ArrayList<>(this.history);
-        Thread thread = new Thread(() -> {
+        if (learningThread.isAlive()) {
+            try {
+                learningThread.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        learningThread = new Thread(() -> {
             synchronized (weights) {
-                double[] improvement = new double[1];
-                double[] nextImprovement;
+                double[] previousDerivative;
+                //region choose derivative based on the outcome of the game
+                double desiredChange = 0;
                 switch (gameEnd) {
-                    case victory -> improvement[0] = 1; // a higher value returned by the network is better
-                    case loss -> improvement[0] = -2;
-                    case draw -> improvement[0] = -1;
+                    case victory -> desiredChange = 1; // a higher value returned by the network is better
+                    case loss -> desiredChange = -1;
+                    case draw -> desiredChange = -0.5;
                 }
-                Turn turn;
-                double[][] matrix;
+                //endregion
+                Turn turn = history.get(history.size() - 1);
                 for (int pastTurn = history.size() - 1; pastTurn >= 0; pastTurn--) {
-                    turn = history.get(pastTurn);
-                    for (int layer = weights.length - 1; layer > 0; layer--) { // don't care about the output vector. I know the derivative from the game outcome.
-                        matrix = weights[layer];
-                        nextImprovement = new double[matrix[0].length];
-                        for (int i = 0; i < matrix[0].length; i++) {
+                    //derivative/=2;
+                    double[] derivative = {desiredChange}; // how goodness changes with the currently considered input-output pair. silly comment.
+                    for (int layer = weights.length - 1; layer >= 0; layer--) { // don't care about the output vector. I know the derivative from the game outcome.
+                        previousDerivative = new double[weights[layer][0].length];
+                        for (int j = 0; j < weights[layer][0].length; j++) { //output size
                             double value = 0;
-                            for (int j = 0; j < matrix.length; j++) {
-                                value += improvement[j] * matrix[j][i];
-                                weights[layer][j][i] = weights[layer][j][i] + improvement[j] * turn.vectors[layer][j] * DevConfig.learningRate;
+                            for (int i = 0; i < weights[layer].length; i++) { //input size
+                                value += weights[layer][i][j] * activationDerivative(turn.vectors[layer+1][i]) * derivative[i]; // this must be wrong
+                                weights[layer][i][j] += turn.vectors[layer][j]
+                                        * activationDerivative(turn.vectors[layer+1][i])
+                                        * derivative[i] * DevConfig.learningRate;
                             }
-                            nextImprovement[i] = activationDerivative(value);
+                            previousDerivative[j] = value;
                         }
-                        improvement = nextImprovement;
+                        derivative = previousDerivative;
                     }
+                    turn = history.get(pastTurn);
+                    recalculateTurn(turn); // get activations with new weights
                 }
             }
-
         });
-        thread.start();
+        learningThread.start();
+    }
+
+    private void recalculateTurn(@NotNull Turn turn) {
+        double[] vector = turn.vectors[0];
+        double[] temp;
+        double value;
+        for (int layer = 0; layer < layers + 2; layer++) {
+            temp = new double[weights[layer].length];
+            for (int i = 0; i < weights[layer].length; i++) {
+                value = 0;
+                for (int j = 0; j < weights[layer][i].length; j++) {
+                    value += weights[layer][i][j] * vector[j];
+                }
+                temp[i] = activation(value);
+            }
+            vector = temp;
+            turn.vectors[layer + 1] = vector;
+        }
     }
 }
