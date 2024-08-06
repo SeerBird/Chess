@@ -13,7 +13,7 @@ public class DevConfig {
     //endregion
     //region board
     public static int turnLimit = 7500;
-    public static final int mandatoryOutputPeriod = 3;
+    public static final int mandatoryOutputPeriod = 10;
     public static boolean randomStart = true;
     //endregion
     //region ml

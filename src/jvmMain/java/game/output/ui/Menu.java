@@ -53,7 +53,7 @@ public class Menu implements MoveGenerator {
                                     CHOICE.notify();
                                 }
                                 moves = null;
-                                GameHandler.out();
+                                GameHandler.draw();
                             }, future.lastMove.mode == MoveMode.capture
                                     ? DevConfig.red : DevConfig.green));
                         } else {
@@ -76,17 +76,17 @@ public class Menu implements MoveGenerator {
                                     }
                                     promotions = null;
                                     moves = null;
-                                    GameHandler.out();
+                                    GameHandler.draw();
                                 }, DevConfig.promotion, (PromotionMove) (future.lastMove)));
                             }
-                            GameHandler.out();
+                            GameHandler.draw();
                         }, groupedPromotions.get(dest).get(0).lastMove.mode == MoveMode.capture ? DevConfig.red : DevConfig.green));
                     }
                 }
-                GameHandler.out();
+                GameHandler.draw();
             }, DevConfig.green));
         }
-        GameHandler.out();
+        GameHandler.draw();
         CHOICE.value = -1;
         return new MoveFuture(CHOICE);
     }
@@ -96,27 +96,27 @@ public class Menu implements MoveGenerator {
             for (Button promotion : promotions) {
                 if (promotion.press(pos)) {
                     pressed = promotion;
-                    GameHandler.out(); // to draw the button being pressed?
+                    GameHandler.draw(); // to draw the button being pressed?
                     return true;
                 }
             }
             promotions = null;
-            GameHandler.out();
+            GameHandler.draw();
         } else if (moves != null) {
             for (Button move : moves) {
                 if (move.press(pos)) {
                     pressed = move;
-                    GameHandler.out(); // to draw the button being pressed?
+                    GameHandler.draw(); // to draw the button being pressed?
                     return true;
                 }
             }
             moves = null;
-            GameHandler.out();
+            GameHandler.draw();
         } else {
             for (Button piece : pieces) {
                 if (piece.press(pos)) {
                     pressed = piece;
-                    GameHandler.out(); // to draw the button being pressed?
+                    GameHandler.draw(); // to draw the button being pressed?
                     return true;
                 }
             }

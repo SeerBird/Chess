@@ -39,14 +39,20 @@ public class Learner implements MoveGenerator {
         } catch (Exception e) {
             temp = new double[layers + 2][][];
             temp[0] = new double[layerWidth][inputSize];
+            /*
             for (int i = 0; i < DevConfig.layers; i++) {
                 temp[i + 1] = new double[layerWidth][layerWidth];
             }
-            temp[layers + 1] = new double[1][layerWidth];
+
+             */
+            temp[1] = new double[21][layerWidth];
+            temp[2] = new double[16][21];
+            temp[3] = new double[layerWidth][16];
+            temp[4] = new double[1][layerWidth];
             for (int layer = 0; layer < temp.length; layer++) {
                 for (int i = 0; i < temp[layer].length; i++) {
                     for (int j = 0; j < temp[layer][i].length; j++)
-                        temp[layer][i][j] = Math.random() * 2.4 - 1.2;
+                        temp[layer][i][j] = Math.random() * 1 - 0.5;
                 }
             }
         }
@@ -77,14 +83,14 @@ public class Learner implements MoveGenerator {
             for (int i = 0; i < scores.size(); i++) {
                 random -= scores.get(i);
                 if (random < 0) {
-                    getTurn().choose(i);
+                    getTurn().choose(i, scores.get(i));
                     return new MoveFuture(new Choice(i));
                 }
             }
             //endregion
         }
         int choice = (int) (Math.random() * futures.size());
-        getTurn().choose(choice);
+        getTurn().choose(choice, scores.get(choice));
         return new MoveFuture(new Choice(choice));
     }
 
@@ -186,33 +192,34 @@ public class Learner implements MoveGenerator {
         }
         learningThread = new Thread(() -> {
             synchronized (weights) {
-                double[] previousDerivative;
+                double[] previousGradientA;
                 //region choose derivative based on the outcome of the game
                 double desiredChange = 0;
                 switch (gameEnd) {
                     case victory -> desiredChange = 1; // a higher value returned by the network is better
                     case loss -> desiredChange = -1;
-                    case draw -> desiredChange = -0.5;
+                    case draw -> {return;}//desiredChange = -0.5;
                 }
+                System.out.println("We learning!");
                 //endregion
                 Turn turn = history.get(history.size() - 1);
                 for (int pastTurn = history.size() - 1; pastTurn >= 0; pastTurn--) {
-                    //derivative/=2;
-                    double[] derivative = {desiredChange}; // how goodness changes with the currently considered input-output pair. silly comment.
+                    double[] gradientA = {desiredChange}; // how goodness changes with the currently considered input-output pair. silly comment.
                     for (int layer = weights.length - 1; layer >= 0; layer--) { // don't care about the output vector. I know the derivative from the game outcome.
-                        previousDerivative = new double[weights[layer][0].length];
+                        previousGradientA = new double[weights[layer][0].length];
                         for (int j = 0; j < weights[layer][0].length; j++) { //output size
-                            double value = 0;
+                            double dotWColumnWithZGradient = 0;
                             for (int i = 0; i < weights[layer].length; i++) { //input size
-                                value += weights[layer][i][j] * activationDerivative(turn.vectors[layer+1][i]) * derivative[i]; // this must be wrong
-                                weights[layer][i][j] += turn.vectors[layer][j]
-                                        * activationDerivative(turn.vectors[layer+1][i])
-                                        * derivative[i] * DevConfig.learningRate;
+                                dotWColumnWithZGradient += weights[layer][i][j] * activationDerivative(turn.vectors[layer + 1][i]) * gradientA[i]; // this must be wrong
+                                weights[layer][i][j] += gradientA[i] * activationDerivative(turn.vectors[layer + 1][i])
+                                        * turn.vectors[layer][j]
+                                        * DevConfig.learningRate;
                             }
-                            previousDerivative[j] = value;
+                            previousGradientA[j] = dotWColumnWithZGradient;
                         }
-                        derivative = previousDerivative;
+                        gradientA = previousGradientA;
                     }
+                    desiredChange *= turn.confidence; //decrease effect on earlier turns.
                     turn = history.get(pastTurn);
                     recalculateTurn(turn); // get activations with new weights
                 }

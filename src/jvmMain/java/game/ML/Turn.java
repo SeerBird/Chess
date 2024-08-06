@@ -3,6 +3,7 @@ package game.ML;
 import java.util.ArrayList;
 
 class Turn {
+    public double confidence;
     public ArrayList<double[][]> potentialVectors;
     public double[][] vectors;
 
@@ -10,8 +11,9 @@ class Turn {
         potentialVectors = new ArrayList<>();
     }
 
-    public void choose(int id) {
+    public void choose(int id,double confidence) {
         vectors = potentialVectors.get(id);
+        this.confidence=confidence;
         potentialVectors.clear();
     }
     public double output(){

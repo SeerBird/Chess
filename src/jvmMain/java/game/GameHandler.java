@@ -4,9 +4,6 @@ import game.ML.Learner;
 import game.model.Board;
 import game.output.GameWindow;
 import game.output.Renderer;
-import game.output.ui.Menu;
-import game.simpleBots.MinMaxer;
-import game.simpleBots.Whacky;
 import game.util.DevConfig;
 import game.util.Logging;
 import game.util.Maths;
@@ -26,7 +23,7 @@ public class GameHandler {
 
     public static void start() throws ExecutionException, InterruptedException {
         //region connect MoveGenerators
-        black = new Whacky();
+        black = new Learner();
         white = new Learner();
         double learnerWins = 0;
         if (DevConfig.randomStart && Math.random() > 0.5) {
@@ -38,7 +35,6 @@ public class GameHandler {
         board = new Board();
         board.reset();
         lastTimedGame = 0;
-        out();
         //endregion
         for (int gameCount = 0; true; gameCount++) {
             //region helper locals
@@ -78,10 +74,14 @@ public class GameHandler {
             }
             //region MoveGenerator-independent output
             if (gameCount == DevConfig.mandatoryOutputPeriod) {
-                out();
+                draw();
                 gameCount = 0;
+                /*
                 logger.info(Maths.round(DevConfig.mandatoryOutputPeriod / ((System.nanoTime() - lastTimedGame) / Math.pow(10, 9)), 1)
                         + " games per second. Learner winrate: "+learnerWins/DevConfig.mandatoryOutputPeriod);
+
+                 */
+                draw();
                 learnerWins=0;
                 lastTimedGame = System.nanoTime();
             }
@@ -94,7 +94,7 @@ public class GameHandler {
         }
     }
 
-    public static void out() {
+    public static void draw() {
         Board savedBoard = getBoard();
         Thread render = new Thread(() -> {
             synchronized (window) {
